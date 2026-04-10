@@ -126,9 +126,6 @@ const AboutUs = () => {
               <div key={member.id} className="team-card">
                 <div className="member-photo">
                   <img src={member.fotoUrl} alt={member.nombre} />
-                  <a href={member.linkedin} target="_blank" rel="noreferrer" className="linkedin-overlay">
-                    <ExternalLink size={24} />
-                  </a>
                 </div>
                 <div className="member-info">
                   <h4>{member.nombre}</h4>
@@ -309,20 +306,7 @@ const AboutUs = () => {
           transition: 0.5s;
         }
 
-        .team-card:hover .member-photo img { transform: scale(1.1); }
-
-        .linkedin-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(229, 9, 20, 0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          transition: 0.3s;
-        }
-
-        .member-photo:hover .linkedin-overlay { opacity: 1; }
+        .team-card:hover .member-photo img { transform: scale(1.05); }
 
         .member-info { padding: 1.5rem; }
         .member-info h4 { font-size: 1.25rem; margin-bottom: 0.4rem; }

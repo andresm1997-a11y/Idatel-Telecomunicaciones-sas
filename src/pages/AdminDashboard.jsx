@@ -29,7 +29,10 @@ import {
   Users,
   ExternalLink,
   Upload,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Search,
+  Menu,
+  X
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -62,6 +65,19 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [planSearch, setPlanSearch] = useState('');
+  const [editingTeamMember, setEditingTeamMember] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Filter plans based on search term
+  const filteredPlans = plans.filter(plan => {
+    const term = planSearch.toLowerCase();
+    return (
+      plan.name.toLowerCase().includes(term) ||
+      plan.price.toString().includes(term) ||
+      plan.speed.toString().includes(term)
+    );
+  });
 
   // Form states for adding/editing plans
   const [editingPlan, setEditingPlan] = useState(null);
@@ -136,6 +152,22 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error("Error logging out", error);
     }
+  };
+
+  const startEditTeamMember = (member) => {
+    setEditingTeamMember(member);
+    setTeamForm({
+      nombre: member.nombre,
+      cargo: member.cargo,
+      linkedin: member.linkedin || '',
+      fotoUrl: member.fotoUrl
+    });
+    setFileToUpload(null);
+    if (window.innerWidth < 1100) setIsSidebarOpen(false);
+    
+    // Smooth scroll to team form
+    const formElement = document.getElementById('team-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
   };
 
   // --- PLANS LOGIC ---
@@ -250,16 +282,26 @@ const AdminDashboard = () => {
         finalPhotoUrl = await getDownloadURL(snapshot.ref);
       }
 
-      // 2. Guardar en Firestore
-      await addDoc(collection(db, 'equipo'), {
-        ...teamForm,
-        fotoUrl: finalPhotoUrl,
-        createdAt: new Date().toISOString()
-      });
+      // 2. Guardar o actualizar en Firestore
+      if (editingTeamMember) {
+        await updateDoc(doc(db, 'equipo', editingTeamMember.id), {
+          ...teamForm,
+          fotoUrl: finalPhotoUrl,
+          updatedAt: new Date().toISOString()
+        });
+        showMessage('success', 'Integrante actualizado con éxito.');
+      } else {
+        await addDoc(collection(db, 'equipo'), {
+          ...teamForm,
+          fotoUrl: finalPhotoUrl,
+          createdAt: new Date().toISOString()
+        });
+        showMessage('success', 'Integrante añadido al equipo.');
+      }
 
       setTeamForm({ nombre: '', cargo: '', linkedin: '', fotoUrl: '' });
       setFileToUpload(null);
-      showMessage('success', 'Integrante añadido al equipo.');
+      setEditingTeamMember(null);
       fetchInitialData();
     } catch (error) {
       console.error(error);
@@ -302,33 +344,38 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className="admin-dashboard">
-      <aside className="admin-sidebar">
+    <div className={`admin-dashboard ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+      {/* Mobile Menu Toggle */}
+      <button className="mobile-toggle" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <img src="/logo-idatel.png" alt="Idatel Logo" />
         </div>
         <nav className="sidebar-nav">
           <button 
             className={activeTab === 'plans' ? 'active' : ''} 
-            onClick={() => setActiveTab('plans')}
+            onClick={() => { setActiveTab('plans'); setIsSidebarOpen(false); }}
           >
             <Wifi size={20} /> Gestión de Planes
           </button>
           <button 
             className={activeTab === 'content' ? 'active' : ''} 
-            onClick={() => setActiveTab('content')}
+            onClick={() => { setActiveTab('content'); setIsSidebarOpen(false); }}
           >
             <Type size={20} /> Textos del Sitio
           </button>
           <button 
             className={activeTab === 'access' ? 'active' : ''} 
-            onClick={() => setActiveTab('access')}
+            onClick={() => { setActiveTab('access'); setIsSidebarOpen(false); }}
           >
             <ShieldCheck size={20} /> Ajustes de Acceso
           </button>
           <button 
             className={activeTab === 'empresa' ? 'active' : ''} 
-            onClick={() => setActiveTab('empresa')}
+            onClick={() => { setActiveTab('empresa'); setIsSidebarOpen(false); }}
           >
             <Building2 size={20} /> Gestión de Empresa
           </button>
@@ -439,8 +486,18 @@ const AdminDashboard = () => {
 
             {/* Plans List */}
             <div className="admin-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div className="list-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <h3 style={{ margin: 0 }}>Planes Actuales</h3>
+                <div className="search-bar" style={{ position: 'relative', flex: '1', maxWidth: '300px' }}>
+                  <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Buscar por nombre, precio o megas..." 
+                    value={planSearch}
+                    onChange={(e) => setPlanSearch(e.target.value)}
+                    style={{ paddingLeft: '35px', fontSize: '0.8rem', width: '100%', height: '38px' }}
+                  />
+                </div>
                 {plans.length === 0 && (
                   <button 
                     onClick={async () => {
@@ -487,25 +544,31 @@ const AdminDashboard = () => {
                 <table className="plans-table">
                   <thead>
                     <tr>
-                      <th>Nombre</th>
-                      <th>Tipo</th>
+                      <th>Plan</th>
                       <th>Precio</th>
+                      <th>Velocidad</th>
                       <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {plans.map(plan => (
+                    {filteredPlans.map((plan) => (
                       <tr key={plan.id}>
-                        <td>{plan.name} ({plan.speed}MB)</td>
-                        <td style={{fontSize: '0.8rem'}}>{plan.type === 'soloInternet' ? 'Internet' : 'TV'}</td>
+                        <td>{plan.name}</td>
                         <td>${plan.price}</td>
-                        <td className="table-actions">
-                          <button onClick={() => startEditPlan(plan)} className="action-btn edit"><Edit size={16} /></button>
-                          <button onClick={() => deletePlan(plan.id)} className="action-btn delete"><Trash2 size={16} /></button>
+                        <td>{plan.speed}MB</td>
+                        <td>
+                          <div className="table-actions">
+                            <button className="action-btn edit" onClick={() => startEditPlan(plan)}><Edit size={16} /></button>
+                            <button className="action-btn delete" onClick={() => deletePlan(plan.id)}><Trash2 size={16} /></button>
+                          </div>
                         </td>
                       </tr>
                     ))}
-                    {plans.length === 0 && <tr><td colSpan="4" style={{textAlign: 'center', padding: '2rem'}}>No hay planes configurados.</td></tr>}
+                    {filteredPlans.length === 0 && (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>No se encontraron planes.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -650,9 +713,9 @@ const AdminDashboard = () => {
             </div>
 
             {/* Team Management */}
-            <div className="admin-card">
+            <div className="admin-card" id="team-form">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h3 style={{ margin: 0 }}>Equipo de Trabajo</h3>
+                <h3 style={{ margin: 0 }}>{editingTeamMember ? 'Editar Integrante' : 'Equipo de Trabajo'}</h3>
                 {teamMembers.length === 0 && (
                    <button 
                     onClick={async () => {
@@ -682,7 +745,6 @@ const AdminDashboard = () => {
                   </button>
                 )}
               </div>
-
               <form onSubmit={handleSaveTeamMember} className="admin-form" style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid #333' }}>
                 <div className="form-row">
                   <div className="form-group">
@@ -753,9 +815,23 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 <button type="submit" className="btn btn-primary btn-sm" disabled={actionLoading || uploading}>
-                   {uploading ? <Loader2 className="spin-icon" /> : <Plus size={16} />} 
-                   {uploading ? 'Subiendo imagen...' : 'Añadir Integrante'}
+                   {uploading ? <Loader2 className="spin-icon" /> : editingTeamMember ? <Save size={16} /> : <Plus size={16} />} 
+                   {uploading ? 'Subiendo imagen...' : editingTeamMember ? 'Actualizar Integrante' : 'Añadir Integrante'}
                 </button>
+                {editingTeamMember && (
+                  <button 
+                    type="button" 
+                    className="btn btn-outline btn-sm" 
+                    style={{ marginLeft: '1rem' }}
+                    onClick={() => {
+                      setEditingTeamMember(null);
+                      setTeamForm({ nombre: '', cargo: '', linkedin: '', fotoUrl: '' });
+                      setFileToUpload(null);
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                )}
               </form>
 
               <div className="team-list">
@@ -766,7 +842,10 @@ const AdminDashboard = () => {
                       <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>{member.nombre}</div>
                       <div style={{ fontSize: '0.8rem', color: '#888' }}>{member.cargo}</div>
                     </div>
-                    <button onClick={() => deleteTeamMember(member.id)} className="action-btn delete"><Trash2 size={16} /></button>
+                    <div className="table-actions">
+                      <button className="action-btn edit" onClick={() => startEditTeamMember(member)}><Edit size={16} /></button>
+                      <button onClick={() => deleteTeamMember(member.id)} className="action-btn delete"><Trash2 size={16} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -978,13 +1057,72 @@ const AdminDashboard = () => {
           max-width: 800px;
         }
 
-        @media (max-width: 1100px) {
-           .admin-content-grid { grid-template-columns: 1fr; }
-           .admin-sidebar { width: 80px; padding: 1rem; }
-           .admin-main { margin-left: 80px; }
-           .sidebar-brand, .sidebar-nav button span, .sidebar-nav button svg + span { display: none; }
-           .sidebar-nav button { justify-content: center; padding: 1.5rem 0; }
+        .mobile-toggle {
+          display: none;
+          position: fixed;
+          top: 1rem;
+          right: 1rem;
+          z-index: 1001;
+          background: #E50914;
+          color: white;
+          border: none;
+          padding: 0.5rem;
+          border-radius: 8px;
+          cursor: pointer;
         }
+
+        @media (max-width: 1100px) {
+           .mobile-toggle { display: block; }
+           
+           .admin-sidebar {
+             position: fixed;
+             left: -100%;
+             top: 0;
+             width: 250px;
+             height: 100vh;
+             z-index: 1000;
+             transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+           }
+
+           .admin-sidebar.open {
+             left: 0;
+             box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+           }
+
+           .admin-main {
+             margin-left: 0;
+             padding: 4rem 1.5rem 1.5rem;
+           }
+
+           .admin-content-grid {
+             grid-template-columns: 1fr;
+           }
+
+           .admin-header {
+             flex-direction: column;
+             align-items: flex-start;
+             gap: 1rem;
+           }
+
+           .list-header {
+             flex-direction: column;
+             align-items: flex-start !important;
+           }
+
+           .search-bar {
+             max-width: 100% !important;
+             width: 100%;
+           }
+
+           .admin-alert {
+             margin-top: 1rem;
+           }
+
+           .form-row {
+             grid-template-columns: 1fr !important;
+           }
+        }
+
       `}</style>
     </div>
   );
