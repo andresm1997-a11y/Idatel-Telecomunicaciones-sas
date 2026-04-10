@@ -13,6 +13,7 @@ import {
   X,
   Loader2
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { apiService, WHATSAPP_NUMBER } from '../services/api';
 import { db } from '../firebase';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -34,7 +35,7 @@ const Header = () => {
           <a href="#beneficios" onClick={() => setIsMenuOpen(false)}>Beneficios</a>
           <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" onClick={() => setIsMenuOpen(false)}>Contacto</a>
           {/* Mobile only admin access */}
-          <a href="/login" className="mobile-only-link" onClick={() => setIsMenuOpen(false)}>Panel Admin</a>
+          <Link to="/login" className="mobile-only-link" onClick={() => setIsMenuOpen(false)}>Panel Admin</Link>
         </nav>
 
         <div className="header-actions">
@@ -409,7 +410,7 @@ const Footer = () => {
           <div className="footer-links">
             <h4>Soporte</h4>
             <a href="#">Centro de Ayuda</a>
-            <a href="/login" style={{color: '#888', fontSize: '13px', marginTop: '10px', display: 'inline-block'}}>Acceso Panel</a>
+            <Link to="/login" style={{color: '#888', fontSize: '13px', marginTop: '10px', display: 'inline-block'}}>Acceso Panel</Link>
             <a href="#">Términos y Condiciones</a>
           </div>
           <div className="footer-contact">

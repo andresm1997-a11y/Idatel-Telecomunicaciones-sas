@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Loader2, Lock } from 'lucide-react';
 
@@ -29,9 +29,9 @@ const LoginPage = () => {
   return (
     <div className="login-page">
       <div className="login-header">
-        <a href="/">
+        <Link to="/">
           <img src="/logo-idatel.png" alt="Idatel Logo" className="login-logo" />
-        </a>
+        </Link>
       </div>
       
       <div className="login-card-container">
@@ -67,7 +67,7 @@ const LoginPage = () => {
           </form>
           
           <div className="login-help">
-            <a href="/">Volver a la página principal</a>
+            <Link to="/">Volver a la página principal</Link>
           </div>
         </div>
       </div>
