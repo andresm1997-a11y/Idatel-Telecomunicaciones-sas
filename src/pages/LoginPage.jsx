@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2, Lock, User } from 'lucide-react';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -10,17 +12,46 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [accessConfig, setAccessConfig] = useState({ loginMethod: 'email', adminAlias: '' });
+
+  React.useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const configDoc = await getDoc(doc(db, 'config_acceso', 'settings'));
+        if (configDoc.exists()) {
+          setAccessConfig(configDoc.data());
+        }
+      } catch (err) {
+        console.error("Error al cargar config de acceso:", err);
+      }
+    };
+    fetchConfig();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    let loginEmail = email;
+
+    // Lógica para Nombre de Usuario (Alias)
+    if (accessConfig.loginMethod === 'username') {
+      if (email.trim() !== accessConfig.adminAlias) {
+        setError('El nombre de usuario ingresado no es válido.');
+        setLoading(false);
+        return;
+      }
+      // Mapeo invisible a la cuenta del admin
+      loginEmail = 'adminidatel@gmail.com';
+    }
+
     try {
-      await login(email, password);
+      await login(loginEmail, password);
       navigate('/admin');
     } catch (err) {
       console.error(err);
-      setError('Credenciales inválidas. Verifica tu correo y contraseña.');
+      setError('Credenciales inválidas. Verifica tu ' + (accessConfig.loginMethod === 'email' ? 'correo' : 'usuario') + ' y contraseña.');
     } finally {
       setLoading(false);
     }
@@ -43,13 +74,19 @@ const LoginPage = () => {
           
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <input 
-                type="email" 
-                placeholder="Correo electrónico" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={accessConfig.loginMethod === 'email' ? "email" : "text"} 
+                  placeholder={accessConfig.loginMethod === 'email' ? "Correo electrónico" : "Nombre de Usuario"} 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{ paddingLeft: '40px' }}
+                  required
+                />
+                <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#666' }}>
+                  {accessConfig.loginMethod === 'email' ? <Lock size={18} /> : <User size={18} />}
+                </div>
+              </div>
             </div>
             <div className="form-group">
               <input 

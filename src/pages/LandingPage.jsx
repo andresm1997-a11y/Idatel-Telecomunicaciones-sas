@@ -33,6 +33,7 @@ const Header = () => {
           <a href="#planes" onClick={() => setIsMenuOpen(false)}>Planes</a>
           <a href="#cobertura" onClick={() => setIsMenuOpen(false)}>Cobertura</a>
           <a href="#beneficios" onClick={() => setIsMenuOpen(false)}>Beneficios</a>
+          <Link to="/nosotros" onClick={() => setIsMenuOpen(false)}>Nosotros</Link>
           <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" onClick={() => setIsMenuOpen(false)}>Contacto</a>
           {/* Mobile only admin access */}
           <Link to="/login" className="mobile-only-link" onClick={() => setIsMenuOpen(false)}>Panel Admin</Link>
@@ -408,7 +409,8 @@ const Footer = () => {
             <a href="#cobertura">Mapa de Cobertura</a>
           </div>
           <div className="footer-links">
-            <h4>Soporte</h4>
+            <h4>Compañía</h4>
+            <Link to="/nosotros" style={{ display: 'block', marginBottom: '8px' }}>Nosotros</Link>
             <a href="#">Centro de Ayuda</a>
             <Link to="/login" style={{color: '#888', fontSize: '13px', marginTop: '10px', display: 'inline-block'}}>Acceso Panel</Link>
             <a href="#">Términos y Condiciones</a>
