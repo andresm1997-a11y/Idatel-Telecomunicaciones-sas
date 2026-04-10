@@ -239,7 +239,29 @@ ul {
   align-items: center;
   position: relative;
   overflow: hidden;
-  background-image: radial-gradient(circle at center, rgba(229, 9, 20, 0.1), transparent 70%);
+  background: #000;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 70% 50%, transparent, rgba(0, 0, 0, 0.9) 60%),
+              linear-gradient(to bottom, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.8));
+  z-index: 1;
+}
+
+.hero-bg-image {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+  z-index: 0;
 }
 
 .hero-container {
@@ -247,6 +269,8 @@ ul {
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
   align-items: center;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-title {
@@ -441,6 +465,63 @@ ul {
   max-width: 600px;
   margin: 0 auto;
 }
+
+/* Feature Image Section */
+.feature-image-section {
+  padding: 8rem 0;
+  background: #000;
+}
+
+.split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 5rem;
+  align-items: center;
+}
+
+.split-image-wrapper {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+}
+
+.split-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.8s ease;
+}
+
+.split-image-wrapper:hover .split-image {
+  transform: scale(1.05);
+}
+
+.split-content .badge {
+  margin-bottom: 2rem;
+}
+
+.split-content h2 {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  line-height: 1.1;
+}
+
+.split-content p {
+  font-size: 1.15rem;
+  color: var(--color-text-muted);
+  margin-bottom: 2.5rem;
+}
+
+@media (max-width: 992px) {
+  .split-grid {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    text-align: center;
+  }
+}
+
 
 /* Features */
 .features {
