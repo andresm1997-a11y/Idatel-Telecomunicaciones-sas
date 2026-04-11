@@ -14,16 +14,23 @@ import { Link } from 'react-router-dom';
 
 const AboutUs = () => {
   const [companyData, setCompanyData] = useState(null);
+  const [siteContent, setSiteContent] = useState({});
   const [team, setTeam] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Company Stats
+        // Company Stats (Team config)
         const companyDoc = await getDoc(doc(db, 'empresa', 'datos'));
         if (companyDoc.exists()) {
           setCompanyData(companyDoc.data());
+        }
+
+        // Site Content (Texts and Images)
+        const siteDoc = await getDoc(doc(db, 'content', 'home'));
+        if (siteDoc.exists()) {
+          setSiteContent(siteDoc.data());
         }
 
         // Team
@@ -56,17 +63,17 @@ const AboutUs = () => {
           <Link to="/" className="back-link">
             <ArrowLeft size={20} /> Volver al Inicio
           </Link>
-          <img src="/logo-idatel.png" alt="Idatel Logo" className="about-logo" />
+          <img src={siteContent?.logo || "/logo-idatel.png"} alt="Idatel Logo" className="about-logo" />
         </div>
       </header>
 
       {/* Hero Section */}
       <section className="about-hero">
         <div className="container">
-          <div className="badge">🏢 Sobre Nosotros</div>
-          <h1>Conectando el Futuro de <span className="text-primary">Idatel</span></h1>
+          <div className="badge">{siteContent?.aboutBadge || '🏢 Sobre Nosotros'}</div>
+          <h1>{siteContent?.aboutHeroTitle || 'Conectando el Futuro de'} <span className="text-primary">Idatel</span></h1>
           <p className="hero-desc">
-            Somos más que un proveedor de internet; somos el puente tecnológico que impulsa el crecimiento de nuestra región.
+            {siteContent?.aboutHeroDesc || 'Somos más que un proveedor de internet; somos el puente tecnológico que impulsa el crecimiento de nuestra región.'}
           </p>
         </div>
       </section>
@@ -76,14 +83,14 @@ const AboutUs = () => {
         <div className="container">
           <div className="history-grid">
             <div className="history-image">
-              <img src="/tech-bg.png" alt="Our Technology" />
+              <img src={siteContent?.historyImg || "/tech-bg.png"} alt="Our History" />
               <div className="experience-badge">
                 <span className="years">10+</span>
                 <span className="text">Años de Exp.</span>
               </div>
             </div>
             <div className="history-content">
-              <h2>Nuestra Historia</h2>
+              <h2>{siteContent?.historyTitle || 'Nuestra Historia'}</h2>
               <p>{companyData?.historia || "Idatel nació con la visión de llevar conectividad de alta calidad a cada rincón, superando las barreras tecnológicas y geográficas."}</p>
               <ul className="stats-list">
                 <li><CheckCircle2 className="text-primary" /> Red 100% Fibra Óptica</li>

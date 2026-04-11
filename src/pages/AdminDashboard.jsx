@@ -15,7 +15,8 @@ import { useAuth } from '../context/AuthContext';
 import { 
   Plus, 
   Trash2, 
-  Edit, 
+  Edit,
+  Edit3,
   Save, 
   LogOut, 
   LayoutDashboard, 
@@ -40,10 +41,39 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('plans');
   const [plans, setPlans] = useState([]);
   const [siteContent, setSiteContent] = useState({
+    // Global
+    logo: '/logo-idatel.png',
+    footerDesc: 'Conectando el futuro a través de redes de fibra óptica de última generación.',
+    
+    // Hero
+    heroBadge: '🚀 Fibra Óptica Real',
     heroTitle: 'Navega sin límites con',
     heroSubtitle: 'El internet de fibra óptica que tu hogar y empresa merecen. Velocidad simétrica, instalación en 24h y soporte local experto.',
-    badge: '🚀 Fibra Óptica Real'
+    heroBtnPrimary: 'Verificar Cobertura',
+    heroBtnSecondary: 'Ver Planes',
+    heroImg: '/hero-fiber.png',
+
+    // Tech Section
+    techBadge: '🛠️ Tecnología de Punta',
+    techTitle: 'Infraestructura que no se detiene',
+    techDesc: 'En Idatel utilizamos componentes de última generación y tendidos propios de fibra óptica. Nuestros técnicos están capacitados para reaccionar ante cualquier imprevisto, asegurando que tu hogar siempre esté conectado a la máxima velocidad.',
+    techImg: '/tech-bg.png',
+
+    // Family Section
+    familyBadge: '🏠 Conexión Familiar',
+    familyTitle: 'Entretenimiento sin interrupciones',
+    familyDesc: 'Toda la familia al mismo tiempo: streaming 4K, teletrabajo, clases virtuales y gaming. Con Idatel, el ancho de banda nunca es un problema. Conectamos lo que más quieres con el mundo.',
+    familyBtn: 'Ver Planes Disponibles',
+    familyImg: '/family-bg.png',
+
+    // About Us
+    aboutBadge: '🏢 Sobre Nosotros',
+    aboutHeroTitle: 'Conectando el Futuro de Idatel',
+    aboutHeroDesc: 'Somos más que un proveedor de internet; somos el puente tecnológico que impulsa el crecimiento de nuestra región.',
+    historyTitle: 'Nuestra Historia',
+    historyImg: '/tech-bg.png'
   });
+  const [activeSiteTab, setActiveSiteTab] = useState('inicio');
   const [accessConfig, setAccessConfig] = useState({
     loginMethod: 'email',
     adminAlias: ''
@@ -112,7 +142,7 @@ const AdminDashboard = () => {
 
         const contentDoc = await getDoc(doc(db, 'content', 'home'));
         if (contentDoc.exists()) {
-          setSiteContent(contentDoc.data());
+          setSiteContent(prev => ({ ...prev, ...contentDoc.data() }));
           console.log("Contenido del sitio cargado.");
         }
 
@@ -237,15 +267,35 @@ const AdminDashboard = () => {
 
   // --- CONTENT LOGIC ---
   const handleSaveContent = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setActionLoading(true);
     try {
-      await updateDoc(doc(db, 'content', 'home'), siteContent);
-      showMessage('success', 'Contenido del sitio actualizado.');
+      await setDoc(doc(db, 'content', 'home'), siteContent);
+      showMessage('success', 'Contenido e imágenes actualizados con éxito.');
     } catch (error) {
-      showMessage('error', 'Error al actualizar textos.');
+      console.error(error);
+      showMessage('error', 'Error al actualizar contenidos.');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleSiteImageUpload = async (field, file) => {
+    if (!file) return;
+    setActionLoading(true);
+    setUploading(true);
+    try {
+      const fileRef = ref(storage, `site/${field}_${Date.now()}`);
+      const snapshot = await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      setSiteContent(prev => ({ ...prev, [field]: url }));
+      showMessage('success', 'Imagen subida (Haz clic en Guardar para confirmar).');
+    } catch (error) {
+      console.error(error);
+      showMessage('error', 'Error al subir la imagen.');
+    } finally {
+      setActionLoading(false);
+      setUploading(false);
     }
   };
 
@@ -377,7 +427,8 @@ const AdminDashboard = () => {
             className={activeTab === 'content' ? 'active' : ''} 
             onClick={() => { setActiveTab('content'); setIsSidebarOpen(false); }}
           >
-            <Type size={20} /> Textos del Sitio
+            <Edit3 size={20} />
+            <span>Imágenes y Texto</span>
           </button>
           <button 
             className={activeTab === 'access' ? 'active' : ''} 
@@ -590,39 +641,170 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'content' && (
-          <div className="admin-card content-card">
-            <h3>Contenido de la Sección Hero</h3>
+          <div className="site-editor">
+            <div className="admin-header" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ margin: 0 }}>Imágenes y Texto del Sitio</h2>
+              <div className="sub-tabs" style={{ display: 'flex', gap: '0.5rem', background: '#111', padding: '0.5rem', borderRadius: '12px', flexWrap: 'wrap' }}>
+                <button className={`btn btn-sm ${activeSiteTab === 'inicio' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveSiteTab('inicio')}>🏠 Inicio</button>
+                <button className={`btn btn-sm ${activeSiteTab === 'nosotros' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveSiteTab('nosotros')}>🏢 Nosotros</button>
+                <button className={`btn btn-sm ${activeSiteTab === 'global' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveSiteTab('global')}>⚙️ Logo / Global</button>
+              </div>
+            </div>
+
             <form onSubmit={handleSaveContent} className="admin-form">
-              <div className="form-group">
-                <label>Pequeño distintivo (Badge)</label>
-                <input 
-                  type="text" 
-                  value={siteContent.badge}
-                  onChange={(e) => setSiteContent({...siteContent, badge: e.target.value})}
-                />
+              {activeSiteTab === 'inicio' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '2rem' }}>
+
+                  {/* Hero */}
+                  <div className="admin-card">
+                    <h3>🎯 Sección Hero (Portada)</h3>
+                    <div className="form-group">
+                      <label>Badge superior</label>
+                      <input type="text" value={siteContent.heroBadge} onChange={(e) => setSiteContent({...siteContent, heroBadge: e.target.value})} placeholder="🚀 Fibra Óptica Real" />
+                    </div>
+                    <div className="form-group">
+                      <label>Título Principal</label>
+                      <input type="text" value={siteContent.heroTitle} onChange={(e) => setSiteContent({...siteContent, heroTitle: e.target.value})} placeholder="Navega sin límites con" />
+                    </div>
+                    <div className="form-group">
+                      <label>Subtítulo</label>
+                      <textarea rows="3" value={siteContent.heroSubtitle} onChange={(e) => setSiteContent({...siteContent, heroSubtitle: e.target.value})} />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Botón 1 (CTA)</label>
+                        <input type="text" value={siteContent.heroBtnPrimary} onChange={(e) => setSiteContent({...siteContent, heroBtnPrimary: e.target.value})} placeholder="Verificar Cobertura" />
+                      </div>
+                      <div className="form-group">
+                        <label>Botón 2 (Secundario)</label>
+                        <input type="text" value={siteContent.heroBtnSecondary} onChange={(e) => setSiteContent({...siteContent, heroBtnSecondary: e.target.value})} placeholder="Ver Planes" />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>📷 Imagen de Fondo (Hero)</label>
+                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <img src={siteContent.heroImg || '/hero-fiber.png'} alt="Preview Hero" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                      <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('heroImg', e.target.files[0])} />
+                      <small style={{ color: '#666', fontSize: '0.75rem' }}>Si no subes imagen nueva, se mantiene la actual.</small>
+                    </div>
+                  </div>
+
+                  {/* Tech Section */}
+                  <div className="admin-card">
+                    <h3>🛠️ Sección Tecnología</h3>
+                    <div className="form-group">
+                      <label>Badge</label>
+                      <input type="text" value={siteContent.techBadge} onChange={(e) => setSiteContent({...siteContent, techBadge: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>Título</label>
+                      <input type="text" value={siteContent.techTitle} onChange={(e) => setSiteContent({...siteContent, techTitle: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción</label>
+                      <textarea rows="4" value={siteContent.techDesc} onChange={(e) => setSiteContent({...siteContent, techDesc: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>📷 Imagen Decorativa</label>
+                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <img src={siteContent.techImg || '/tech-bg.png'} alt="Preview Tech" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                      <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('techImg', e.target.files[0])} />
+                    </div>
+                  </div>
+
+                  {/* Family Section */}
+                  <div className="admin-card">
+                    <h3>🏠 Sección Familiar</h3>
+                    <div className="form-group">
+                      <label>Badge</label>
+                      <input type="text" value={siteContent.familyBadge} onChange={(e) => setSiteContent({...siteContent, familyBadge: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>Título</label>
+                      <input type="text" value={siteContent.familyTitle} onChange={(e) => setSiteContent({...siteContent, familyTitle: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción</label>
+                      <textarea rows="4" value={siteContent.familyDesc} onChange={(e) => setSiteContent({...siteContent, familyDesc: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>Texto del Botón</label>
+                      <input type="text" value={siteContent.familyBtn} onChange={(e) => setSiteContent({...siteContent, familyBtn: e.target.value})} placeholder="Ver Planes Disponibles" />
+                    </div>
+                    <div className="form-group">
+                      <label>📷 Imagen Familiar</label>
+                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <img src={siteContent.familyImg || '/family-bg.png'} alt="Preview Family" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                      <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('familyImg', e.target.files[0])} />
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {activeSiteTab === 'nosotros' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '2rem' }}>
+                  <div className="admin-card">
+                    <h3>🏢 Página Sobre Nosotros</h3>
+                    <div className="form-group">
+                      <label>Badge de Página</label>
+                      <input type="text" value={siteContent.aboutBadge} onChange={(e) => setSiteContent({...siteContent, aboutBadge: e.target.value})} placeholder="🏢 Sobre Nosotros" />
+                    </div>
+                    <div className="form-group">
+                      <label>Título de Bienvenida</label>
+                      <input type="text" value={siteContent.aboutHeroTitle} onChange={(e) => setSiteContent({...siteContent, aboutHeroTitle: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción de Bienvenida</label>
+                      <textarea rows="3" value={siteContent.aboutHeroDesc} onChange={(e) => setSiteContent({...siteContent, aboutHeroDesc: e.target.value})} />
+                    </div>
+                    <div className="form-group">
+                      <label>Título Sección Historia</label>
+                      <input type="text" value={siteContent.historyTitle} onChange={(e) => setSiteContent({...siteContent, historyTitle: e.target.value})} placeholder="Nuestra Historia" />
+                    </div>
+                    <div className="form-group">
+                      <label>📷 Imagen de Historia</label>
+                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px' }}>
+                        <img src={siteContent.historyImg || '/tech-bg.png'} alt="Preview Historia" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                      <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('historyImg', e.target.files[0])} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeSiteTab === 'global' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '2rem' }}>
+                  <div className="admin-card">
+                    <h3>⚙️ Identidad Global</h3>
+                    <div className="form-group">
+                      <label>📷 Logo de la Empresa</label>
+                      <div style={{ background: '#000', padding: '1.5rem', borderRadius: '12px', border: '1px solid #333', textAlign: 'center', marginBottom: '8px' }}>
+                        <img src={siteContent.logo || '/logo-idatel.png'} alt="Logo Preview" style={{ height: '60px', maxWidth: '200px', objectFit: 'contain' }} />
+                      </div>
+                      <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('logo', e.target.files[0])} />
+                      <small style={{ color: '#666', fontSize: '0.75rem' }}>El logo aparece en el Header y Footer del sitio.</small>
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción del Footer</label>
+                      <textarea rows="4" value={siteContent.footerDesc} onChange={(e) => setSiteContent({...siteContent, footerDesc: e.target.value})} placeholder="Conectando el futuro a través de redes de fibra óptica..." />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: '2rem', position: 'sticky', bottom: '1.5rem', zIndex: 10 }}>
+                <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1.25rem', fontSize: '1.1rem', boxShadow: '0 8px 32px rgba(229,9,20,0.4)' }} disabled={actionLoading || uploading}>
+                  {actionLoading ? <><Loader2 className="spin-icon" /> Guardando...</> : <><Save size={20} /> Guardar Todos los Cambios del Sitio</>}
+                </button>
               </div>
-              <div className="form-group">
-                <label>Título Principal (Hero Title)</label>
-                <input 
-                  type="text" 
-                  value={siteContent.heroTitle}
-                  onChange={(e) => setSiteContent({...siteContent, heroTitle: e.target.value})}
-                />
-              </div>
-              <div className="form-group">
-                <label>Subtítulo Principal</label>
-                <textarea 
-                  rows="4"
-                  value={siteContent.heroSubtitle}
-                  onChange={(e) => setSiteContent({...siteContent, heroSubtitle: e.target.value})}
-                ></textarea>
-              </div>
-              <button type="submit" className="btn btn-primary" disabled={actionLoading}>
-                {actionLoading ? <Loader2 className="spin-icon" /> : <Save size={18} />} Guardar Cambios
-              </button>
             </form>
           </div>
         )}
+
 
         {activeTab === 'access' && (
           <div className="admin-card content-card">

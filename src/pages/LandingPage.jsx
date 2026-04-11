@@ -19,14 +19,14 @@ import { db } from '../firebase';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 
 /* COMPONENT: Header */
-const Header = () => {
+const Header = ({ content }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <header className="header glass-panel">
       <div className="container header-content">
         <a href="/" className="logo">
-          <img src="/logo-idatel.png" alt="Idatel Teleco" className="logo-image" />
+          <img src={content?.logo || "/logo-idatel.png"} alt="Idatel Teleco" className="logo-image" />
         </a>
 
         <nav className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
@@ -35,12 +35,11 @@ const Header = () => {
           <a href="#beneficios" onClick={() => setIsMenuOpen(false)}>Beneficios</a>
           <Link to="/nosotros" onClick={() => setIsMenuOpen(false)}>Nosotros</Link>
           <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" onClick={() => setIsMenuOpen(false)}>Contacto</a>
-          {/* Mobile only admin access */}
           <Link to="/login" className="mobile-only-link" onClick={() => setIsMenuOpen(false)}>Panel Admin</Link>
         </nav>
 
         <div className="header-actions">
-          <a href="#planes" className="btn btn-primary btn-sm hidden-mobile">Contrata Ahora</a>
+          <a href="#planes" className="btn btn-primary btn-sm hidden-mobile">{content?.heroBtnPrimary || "Contrata Ahora"}</a>
           <button className="menu-toggle" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             {isMenuOpen ? <X /> : <Menu />}
           </button>
@@ -54,12 +53,12 @@ const Header = () => {
 const Hero = ({ content }) => {
   return (
     <section className="hero">
-      <img src="/hero-fiber.png" alt="Fiber Background" className="hero-bg-image" />
+      <img src={content?.heroImg || "/hero-fiber.png"} alt="Fiber Background" className="hero-bg-image" />
       <div className="hero-overlay"></div>
 
       <div className="container hero-container">
         <div className="hero-content">
-          <div className="badge">🚀 {content?.badge || 'Fibra Óptica Real'}</div>
+          <div className="badge">{content?.heroBadge || '🚀 Fibra Óptica Real'}</div>
           <h1 className="hero-title">
             {content?.heroTitle || 'Navega sin límites con'} <span className="text-gradient">Idatel</span>
           </h1>
@@ -68,10 +67,10 @@ const Hero = ({ content }) => {
           </p>
           <div className="hero-buttons">
             <a href="#cobertura" className="btn btn-primary">
-              Verificar Cobertura
+              {content?.heroBtnPrimary || 'Verificar Cobertura'}
             </a>
             <a href="#planes" className="btn btn-secondary">
-              Ver Planes
+              {content?.heroBtnSecondary || 'Ver Planes'}
             </a>
           </div>
           <div className="hero-trust">
@@ -129,7 +128,7 @@ const Hero = ({ content }) => {
 };
 
 /* COMPONENT: Features */
-const Features = () => {
+const Features = ({ content }) => {
   const features = [
     {
       icon: <Zap size={32} />,
@@ -157,8 +156,8 @@ const Features = () => {
     <section id="beneficios" className="features">
       <div className="container">
         <div className="section-header">
-          <h2 className="section-title">¿Por qué elegir <span className="text-gradient">Idatel</span>?</h2>
-          <p className="section-subtitle">Hemos construido nuestra red pensando en tus necesidades reales.</p>
+          <h2 className="section-title">{content?.featuresTitle || '¿Por qué elegir'} <span className="text-gradient">Idatel</span>?</h2>
+          <p className="section-subtitle">{content?.featuresSubtitle || 'Hemos construido nuestra red pensando en tus necesidades reales.'}</p>
         </div>
         <div className="features-grid">
           {features.map((feat, idx) => (
@@ -174,22 +173,20 @@ const Features = () => {
   );
 };
 
-/* COMPONENT: TechSection (New) */
-const TechSection = () => {
+/* COMPONENT: TechSection */
+const TechSection = ({ content }) => {
   return (
     <section className="feature-image-section">
       <div className="container">
         <div className="split-grid">
           <div className="split-image-wrapper">
-            <img src="/tech-bg.png" alt="Fiber Technology" className="split-image" />
+            <img src={content?.techImg || "/tech-bg.png"} alt="Fiber Technology" className="split-image" />
           </div>
           <div className="split-content">
-            <div className="badge">🛠️ Tecnología de Punta</div>
-            <h2>Infraestructura que no se detiene</h2>
+            <div className="badge">{content?.techBadge || '🛠️ Tecnología de Punta'}</div>
+            <h2>{content?.techTitle || 'Infraestructura que no se detiene'}</h2>
             <p>
-              En Idatel utilizamos componentes de última generación y tendidos propios de fibra óptica.
-              Nuestros técnicos están capacitados para reaccionar ante cualquier imprevisto, asegurando
-              que tu hogar siempre esté conectado a la máxima velocidad.
+              {content?.techDesc || 'En Idatel utilizamos componentes de última generación y tendidos propios de fibra óptica. Nuestros técnicos están capacitados para reaccionar ante cualquier imprevisto, asegurando que tu hogar siempre esté conectado a la máxima velocidad.'}
             </p>
             <ul className="plan-features">
               <li><CheckCircle2 size={18} className="text-success" /> Red FTTH 100% Pura</li>
@@ -203,24 +200,22 @@ const TechSection = () => {
   );
 };
 
-/* COMPONENT: FamilySection (New) */
-const FamilySection = () => {
+/* COMPONENT: FamilySection */
+const FamilySection = ({ content }) => {
   return (
     <section className="feature-image-section bg-surface">
       <div className="container">
         <div className="split-grid" style={{ direction: 'rtl' }}>
           <div className="split-image-wrapper" style={{ direction: 'ltr' }}>
-            <img src="/family-bg.png" alt="Happy Connectivity" className="split-image" />
+            <img src={content?.familyImg || "/family-bg.png"} alt="Happy Connectivity" className="split-image" />
           </div>
           <div className="split-content" style={{ direction: 'ltr' }}>
-            <div className="badge">🏠 Conexión Familiar</div>
-            <h2>Entretenimiento sin interrupciones</h2>
+            <div className="badge">{content?.familyBadge || '🏠 Conexión Familiar'}</div>
+            <h2>{content?.familyTitle || 'Entretenimiento sin interrupciones'}</h2>
             <p>
-              Toda la familia al mismo tiempo: streaming 4K, teletrabajo, clases virtuales y gaming.
-              Con Idatel, el ancho de banda nunca es un problema. Conectamos lo que más quieres con el
-              mundo.
+              {content?.familyDesc || 'Toda la familia al mismo tiempo: streaming 4K, teletrabajo, clases virtuales y gaming. Con Idatel, el ancho de banda nunca es un problema. Conectamos lo que más quieres con el mundo.'}
             </p>
-            <a href="#planes" className="btn btn-primary">Ver Planes Disponibles</a>
+            <a href="#planes" className="btn btn-primary">{content?.familyBtn || 'Ver Planes Disponibles'}</a>
           </div>
         </div>
       </div>
@@ -228,9 +223,8 @@ const FamilySection = () => {
   );
 };
 
-
 /* COMPONENT: Pricing */
-const Pricing = ({ dynamicPlans }) => {
+const Pricing = ({ dynamicPlans, content }) => {
   const [type, setType] = useState('soloInternet');
 
   const defaultPlans = {
@@ -273,8 +267,8 @@ const Pricing = ({ dynamicPlans }) => {
     <section id="planes" className="pricing bg-surface">
       <div className="container">
         <div className="section-header">
-          <h2 className="section-title">Planes diseñados para ti</h2>
-          <p className="section-subtitle">Instalación del servicio ($50.000) Fibra. Elige el que mejor se adapte a ti.</p>
+          <h2 className="section-title">{content?.pricingTitle || 'Planes diseñados para ti'}</h2>
+          <p className="section-subtitle">{content?.pricingSubtitle || 'Instalación del servicio ($50.000) Fibra. Elige el que mejor se adapte a ti.'}</p>
 
           <div className="toggle-container">
             <button className={`toggle-btn ${type === 'soloInternet' ? 'active' : ''}`} onClick={() => setType('soloInternet')}>Solo Internet</button>
@@ -317,7 +311,7 @@ const Pricing = ({ dynamicPlans }) => {
 };
 
 /* COMPONENT: Coverage */
-const Coverage = () => {
+const Coverage = ({ content }) => {
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -341,9 +335,9 @@ const Coverage = () => {
     <section id="cobertura" className="coverage">
       <div className="container coverage-container">
         <div className="coverage-content">
-          <h2 className="section-title text-base">¿Llegamos a tu barrio?</h2>
+          <h2 className="section-title text-base">{content?.coverageTitle || '¿Llegamos a tu barrio?'}</h2>
           <p className="section-subtitle text-base" style={{ opacity: 0.9, marginBottom: '2rem' }}>
-            Verifica al instante si nuestra red de fibra óptica ya ilumina tu calle.
+            {content?.coverageSubtitle || 'Verifica al instante si nuestra red de fibra óptica ya ilumina tu calle.'}
           </p>
 
           <form className="coverage-form" onSubmit={handleSubmit}>
@@ -389,17 +383,17 @@ const Coverage = () => {
 };
 
 /* COMPONENT: Footer */
-const Footer = () => {
+const Footer = ({ content }) => {
   return (
     <footer className="footer">
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
             <a href="/" className="logo">
-              <img src="/logo-idatel.png" alt="Idatel Teleco" className="logo-image" />
+              <img src={content?.logo || "/logo-idatel.png"} alt="Idatel Teleco" className="logo-image" />
             </a>
             <p className="footer-desc">
-              Conectando el futuro a través de redes de fibra óptica de última generación.
+              {content?.footerDesc || 'Conectando el futuro a través de redes de fibra óptica de última generación.'}
             </p>
           </div>
           <div className="footer-links">
@@ -461,16 +455,16 @@ const LandingPage = () => {
 
   return (
     <div className="app">
-      <Header />
+      <Header content={siteContent} />
       <main>
         <Hero content={siteContent} />
-        <Features />
-        <TechSection />
-        <Pricing dynamicPlans={plans} />
-        <FamilySection />
-        <Coverage />
+        <Features content={siteContent} />
+        <TechSection content={siteContent} />
+        <Pricing dynamicPlans={plans} content={siteContent} />
+        <FamilySection content={siteContent} />
+        <Coverage content={siteContent} />
       </main>
-      <Footer />
+      <Footer content={siteContent} />
     </div>
   );
 };
