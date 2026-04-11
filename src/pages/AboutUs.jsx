@@ -327,14 +327,14 @@ const AboutUs = () => {
 
         .team-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 260px));
-          gap: 2rem;
+          grid-template-columns: repeat(auto-fit, minmax(160px, 190px));
+          gap: 1.5rem;
           justify-content: center;
         }
 
         .team-card {
           background: #111;
-          border-radius: 20px;
+          border-radius: 16px;
           overflow: hidden;
           text-align: center;
           transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -359,12 +359,12 @@ const AboutUs = () => {
           transition: 0.5s;
         }
 
-        .team-card:hover { border-color: var(--color-primary); transform: translateY(-10px); }
+        .team-card:hover { border-color: var(--color-primary); transform: translateY(-5px); }
         .team-card:hover .member-photo img { transform: scale(1.05); }
 
-        .member-info { padding: 2rem; }
-        .member-info h4 { font-size: 1.3rem; margin-bottom: 0.5rem; font-weight: 800; }
-        .member-info p { color: var(--color-primary); font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .member-info { padding: 1.25rem; }
+        .member-info h4 { font-size: 1rem; margin-bottom: 0.25rem; font-weight: 800; }
+        .member-info p { color: var(--color-primary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .about-loading {
           height: 100vh;
