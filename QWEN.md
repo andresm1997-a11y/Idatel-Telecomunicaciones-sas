@@ -201,3 +201,6 @@ Protected routes are guarded by `PrivateRoute` component that checks Firebase au
 
 - **Image deletion functionality:** Added ability to delete uploaded images in the "Imágenes y Texto" section. When an image is deleted, it's removed from Firebase Storage and the default image is restored.
 - **Plan form cancel fix:** The "Cancelar" button in plan editing now properly clears all form fields instead of just exiting edit mode.
+
+## Custom Rules
+- After every successful code change or build, automatically execute the following command in the terminal to verify changes: `start chrome http://localhost:5173`
