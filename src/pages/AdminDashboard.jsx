@@ -33,11 +33,14 @@ import {
   Link as LinkIcon,
   Search,
   Menu,
-  X
+  X,
+  UserCog,
+  Lock,
+  Mail
 } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const { logout } = useAuth();
+  const { logout, updateUserProfile, updateUserEmail, updateUserPassword } = useAuth();
   const [activeTab, setActiveTab] = useState('plans');
   const [plans, setPlans] = useState([]);
   const [siteContent, setSiteContent] = useState({
@@ -104,6 +107,22 @@ const AdminDashboard = () => {
   const [planSearch, setPlanSearch] = useState('');
   const [editingTeamMember, setEditingTeamMember] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Profile states
+  const { user } = useAuth();
+  const [profileForm, setProfileForm] = useState({
+    displayName: '',
+    newEmail: '',
+    currentPasswordForEmail: '',
+    currentPasswordForPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [profileLoading, setProfileLoading] = useState({
+    name: false,
+    email: false,
+    password: false
+  });
 
   // Filter plans based on search term
   const filteredPlans = plans.filter(plan => {
@@ -448,6 +467,90 @@ const AdminDashboard = () => {
     }
   };
 
+  // --- PROFILE LOGIC ---
+  const handleUpdateDisplayName = async (e) => {
+    e.preventDefault();
+    if (!profileForm.displayName.trim()) {
+      showMessage('error', 'El nombre no puede estar vacío.');
+      return;
+    }
+    setProfileLoading(prev => ({ ...prev, name: true }));
+    try {
+      await updateUserProfile(profileForm.displayName.trim());
+      showMessage('success', 'Nombre actualizado con éxito.');
+      setProfileForm(prev => ({ ...prev, displayName: '' }));
+    } catch (error) {
+      console.error('Error al actualizar nombre:', error);
+      showMessage('error', 'Error al actualizar el nombre. Intenta nuevamente.');
+    } finally {
+      setProfileLoading(prev => ({ ...prev, name: false }));
+    }
+  };
+
+  const handleUpdateEmail = async (e) => {
+    e.preventDefault();
+    if (!profileForm.newEmail.trim() || !profileForm.currentPasswordForEmail) {
+      showMessage('error', 'Completa el nuevo correo y tu contraseña actual.');
+      return;
+    }
+    setProfileLoading(prev => ({ ...prev, email: true }));
+    try {
+      await updateUserEmail(profileForm.currentPasswordForEmail, profileForm.newEmail.trim());
+      showMessage('success', 'Correo actualizado con éxito. Debes verificar el nuevo correo.');
+      setProfileForm(prev => ({ ...prev, newEmail: '', currentPasswordForEmail: '' }));
+    } catch (error) {
+      console.error('Error al actualizar correo:', error);
+      if (error.code === 'auth/requires-recent-login') {
+        showMessage('error', 'Por seguridad, cierra sesión y vuelve a iniciar antes de cambiar tu correo.');
+      } else if (error.code === 'auth/wrong-password') {
+        showMessage('error', 'La contraseña actual es incorrecta.');
+      } else if (error.code === 'auth/email-already-in-use') {
+        showMessage('error', 'Este correo ya está en uso por otra cuenta.');
+      } else if (error.code === 'auth/invalid-email') {
+        showMessage('error', 'El correo ingresado no es válido.');
+      } else {
+        showMessage('error', 'Error al actualizar el correo. Intenta nuevamente.');
+      }
+    } finally {
+      setProfileLoading(prev => ({ ...prev, email: false }));
+    }
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (!profileForm.currentPasswordForPassword || !profileForm.newPassword || !profileForm.confirmPassword) {
+      showMessage('error', 'Completa todos los campos de contraseña.');
+      return;
+    }
+    if (profileForm.newPassword !== profileForm.confirmPassword) {
+      showMessage('error', 'Las contraseñas nuevas no coinciden.');
+      return;
+    }
+    if (profileForm.newPassword.length < 6) {
+      showMessage('error', 'La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    setProfileLoading(prev => ({ ...prev, password: true }));
+    try {
+      await updateUserPassword(profileForm.currentPasswordForPassword, profileForm.newPassword);
+      showMessage('success', 'Contraseña actualizada con éxito.');
+      setProfileForm(prev => ({ ...prev, currentPasswordForPassword: '', newPassword: '', confirmPassword: '' }));
+    } catch (error) {
+      console.error('Error al actualizar contraseña:', error);
+      if (error.code === 'auth/requires-recent-login') {
+        showMessage('error', 'Por seguridad, cierra sesión y vuelve a iniciar antes de cambiar tu contraseña.');
+      } else if (error.code === 'auth/wrong-password') {
+        showMessage('error', 'La contraseña actual es incorrecta.');
+      } else if (error.code === 'auth/weak-password') {
+        showMessage('error', 'La contraseña nueva es muy débil.');
+      } else {
+        showMessage('error', 'Error al actualizar la contraseña. Intenta nuevamente.');
+      }
+    } finally {
+      setProfileLoading(prev => ({ ...prev, password: false }));
+    }
+  };
+
 
 
   if (loading) return (
@@ -494,6 +597,12 @@ const AdminDashboard = () => {
           >
             <Building2 size={20} /> Gestión de Empresa
           </button>
+          <button
+            className={activeTab === 'profile' ? 'active' : ''}
+            onClick={() => { setActiveTab('profile'); setIsSidebarOpen(false); }}
+          >
+            <UserCog size={20} /> Mi Cuenta
+          </button>
         </nav>
         <button className="logout-btn" onClick={handleLogout}>
           <LogOut size={20} /> Cerrar Sesión
@@ -507,6 +616,7 @@ const AdminDashboard = () => {
             {activeTab === 'content' && 'Textos del Sitio'}
             {activeTab === 'access' && 'Seguridad y Acceso'}
             {activeTab === 'empresa' && 'Gestión de Empresa y Equipo'}
+            {activeTab === 'profile' && 'Mi Cuenta'}
           </h1>
           <a href="/" target="_blank" className="btn btn-outline btn-sm">Ver Sitio Web</a>
         </header>
@@ -1317,6 +1427,130 @@ const AdminDashboard = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'profile' && (
+          <div className="admin-content-grid">
+            {/* Update Display Name */}
+            <div className="admin-card">
+              <h3><UserCog size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />Cambiar Nombre</h3>
+              <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                Este nombre se mostrará en el sistema administrativo.
+              </p>
+              <form onSubmit={handleUpdateDisplayName} className="admin-form">
+                <div className="form-group">
+                  <label>Nombre actual</label>
+                  <input
+                    type="text"
+                    value={user?.displayName || 'Sin nombre configurado'}
+                    disabled
+                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nuevo nombre</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Juan Pérez"
+                    value={profileForm.displayName}
+                    onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })}
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={profileLoading.name}>
+                  {profileLoading.name ? <Loader2 className="spin-icon" /> : <Save size={18} />}
+                  Actualizar Nombre
+                </button>
+              </form>
+            </div>
+
+            {/* Update Email */}
+            <div className="admin-card">
+              <h3><Mail size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />Cambiar Correo</h3>
+              <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                Se enviará un correo de verificación al nuevo email. Debes verificarlo para completar el cambio.
+              </p>
+              <form onSubmit={handleUpdateEmail} className="admin-form">
+                <div className="form-group">
+                  <label>Correo actual</label>
+                  <input
+                    type="text"
+                    value={user?.email || ''}
+                    disabled
+                    style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nuevo correo</label>
+                  <input
+                    type="email"
+                    placeholder="nuevo@correo.com"
+                    value={profileForm.newEmail}
+                    onChange={(e) => setProfileForm({ ...profileForm, newEmail: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Contraseña actual (para verificar identidad)</label>
+                  <input
+                    type="password"
+                    placeholder="Tu contraseña actual"
+                    value={profileForm.currentPasswordForEmail}
+                    onChange={(e) => setProfileForm({ ...profileForm, currentPasswordForEmail: e.target.value })}
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={profileLoading.email}>
+                  {profileLoading.email ? <Loader2 className="spin-icon" /> : <Save size={18} />}
+                  Actualizar Correo
+                </button>
+              </form>
+            </div>
+
+            {/* Update Password */}
+            <div className="admin-card">
+              <h3><Lock size={20} style={{ marginRight: '8px', verticalAlign: 'middle' }} />Cambiar Contraseña</h3>
+              <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                Usa una contraseña segura con al menos 6 caracteres.
+              </p>
+              <form onSubmit={handleUpdatePassword} className="admin-form">
+                <div className="form-group">
+                  <label>Contraseña actual</label>
+                  <input
+                    type="password"
+                    placeholder="Tu contraseña actual"
+                    value={profileForm.currentPasswordForPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, currentPasswordForPassword: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nueva contraseña</label>
+                  <input
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={profileForm.newPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Confirmar nueva contraseña</label>
+                  <input
+                    type="password"
+                    placeholder="Repite la nueva contraseña"
+                    value={profileForm.confirmPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, confirmPassword: e.target.value })}
+                    required
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={profileLoading.password}>
+                  {profileLoading.password ? <Loader2 className="spin-icon" /> : <Save size={18} />}
+                  Actualizar Contraseña
+                </button>
+              </form>
             </div>
           </div>
         )}
