@@ -1,28 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { db, storage } from '../firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
   setDoc,
   getDoc
 } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { 
-  Plus, 
-  Trash2, 
+import {
+  Plus,
+  Trash2,
   Edit,
   Edit3,
-  Save, 
-  LogOut, 
-  LayoutDashboard, 
-  Wifi, 
-  Type, 
-  CheckCircle2, 
+  Save,
+  LogOut,
+  LayoutDashboard,
+  Wifi,
+  Type,
+  CheckCircle2,
   AlertCircle,
   Loader2,
   ShieldCheck,
@@ -44,7 +44,7 @@ const AdminDashboard = () => {
     // Global
     logo: '/logo-idatel.png',
     footerDesc: 'Conectando el futuro a través de redes de fibra óptica de última generación.',
-    
+
     // Hero
     heroBadge: '🚀 Fibra Óptica Real',
     heroTitle: 'Navega sin límites con',
@@ -140,37 +140,37 @@ const AdminDashboard = () => {
       setPlans(plansData);
       console.log("Planes cargados:", plansData.length);
 
-        const contentDoc = await getDoc(doc(db, 'content', 'home'));
-        if (contentDoc.exists()) {
-          setSiteContent(prev => ({ ...prev, ...contentDoc.data() }));
-          console.log("Contenido del sitio cargado.");
-        }
+      const contentDoc = await getDoc(doc(db, 'content', 'home'));
+      if (contentDoc.exists()) {
+        setSiteContent(prev => ({ ...prev, ...contentDoc.data() }));
+        console.log("Contenido del sitio cargado.");
+      }
 
-        // Fetch Access Config
-        const accessDoc = await getDoc(doc(db, 'config_acceso', 'settings'));
-        if (accessDoc.exists()) {
-          setAccessConfig(accessDoc.data());
-          console.log("Configuración de acceso cargada.");
-        }
+      // Fetch Access Config
+      const accessDoc = await getDoc(doc(db, 'config_acceso', 'settings'));
+      if (accessDoc.exists()) {
+        setAccessConfig(accessDoc.data());
+        console.log("Configuración de acceso cargada.");
+      }
 
-        // Fetch Company Data
-        const companyDoc = await getDoc(doc(db, 'empresa', 'datos'));
-        if (companyDoc.exists()) {
-          const data = companyDoc.data();
-          // Asegurar que existan los niveles por defecto si no están en la DB
-          if (!data.niveles) {
-            data.niveles = { 1: 'Directivos', 2: 'Coordinadores', 3: 'Operativos' };
-          }
-          setCompanyData(data);
-          console.log("Datos de empresa cargados.");
+      // Fetch Company Data
+      const companyDoc = await getDoc(doc(db, 'empresa', 'datos'));
+      if (companyDoc.exists()) {
+        const data = companyDoc.data();
+        // Asegurar que existan los niveles por defecto si no están en la DB
+        if (!data.niveles) {
+          data.niveles = { 1: 'Directivos', 2: 'Coordinadores', 3: 'Operativos' };
         }
+        setCompanyData(data);
+        console.log("Datos de empresa cargados.");
+      }
 
-        // Fetch Team Members
-        const teamQuery = await getDocs(collection(db, 'equipo'));
-        const teamData = teamQuery.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setTeamMembers(teamData);
-        console.log("Miembros del equipo cargados:", teamData.length);
-      } catch (error) {
+      // Fetch Team Members
+      const teamQuery = await getDocs(collection(db, 'equipo'));
+      const teamData = teamQuery.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setTeamMembers(teamData);
+      console.log("Miembros del equipo cargados:", teamData.length);
+    } catch (error) {
       console.error("Error detallado de Firestore:", error);
       let errorMsg = 'Error al cargar los datos.';
       if (error.code === 'permission-denied') {
@@ -206,7 +206,7 @@ const AdminDashboard = () => {
     });
     setFileToUpload(null);
     if (window.innerWidth < 1100) setIsSidebarOpen(false);
-    
+
     // Smooth scroll to team form
     const formElement = document.getElementById('team-form');
     if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
@@ -299,6 +299,58 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleSiteImageDelete = async (field) => {
+    const currentUrl = siteContent[field];
+    if (!currentUrl) return;
+
+    // Verificar si es una imagen por defecto del sistema
+    const defaultImages = ['/hero-fiber.png', '/tech-bg.png', '/family-bg.png', '/logo-idatel.png'];
+    if (defaultImages.includes(currentUrl)) {
+      showMessage('error', 'Esta es una imagen por defecto del sistema. No se puede eliminar.');
+      return;
+    }
+
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta imagen? Se restaurará la imagen por defecto.')) return;
+
+    setActionLoading(true);
+    try {
+      // Intentar eliminar de Firebase Storage si es una URL de Storage
+      if (currentUrl.includes('firebasestorage.googleapis.com')) {
+        const storagePath = decodeURIComponent(currentUrl.split('/o/')[1].split('?')[0]);
+        const fileRef = ref(storage, storagePath);
+        await deleteObject(fileRef);
+      }
+
+      // Restaurar imagen por defecto según el campo
+      const defaultImageMap = {
+        heroImg: '/hero-fiber.png',
+        techImg: '/tech-bg.png',
+        familyImg: '/family-bg.png',
+        historyImg: '/tech-bg.png',
+        logo: '/logo-idatel.png'
+      };
+
+      const defaultImage = defaultImageMap[field] || '/logo-idatel.png';
+      setSiteContent(prev => ({ ...prev, [field]: defaultImage }));
+      showMessage('success', 'Imagen eliminada. Se ha restaurado la imagen por defecto.');
+    } catch (error) {
+      console.error('Error al eliminar imagen:', error);
+      // Incluso si falla la eliminación en Storage, restaurar la imagen por defecto
+      const defaultImageMap = {
+        heroImg: '/hero-fiber.png',
+        techImg: '/tech-bg.png',
+        familyImg: '/family-bg.png',
+        historyImg: '/tech-bg.png',
+        logo: '/logo-idatel.png'
+      };
+      const defaultImage = defaultImageMap[field] || '/logo-idatel.png';
+      setSiteContent(prev => ({ ...prev, [field]: defaultImage }));
+      showMessage('success', 'Imagen restaurada a la imagen por defecto (Error al eliminar de Storage).');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSaveAccessConfig = async (e) => {
     e.preventDefault();
     setActionLoading(true);
@@ -333,7 +385,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     setActionLoading(true);
     setUploading(true);
-    
+
     let finalPhotoUrl = teamForm.fotoUrl;
 
     try {
@@ -417,27 +469,27 @@ const AdminDashboard = () => {
           <img src="/logo-idatel.png" alt="Idatel Logo" />
         </div>
         <nav className="sidebar-nav">
-          <button 
-            className={activeTab === 'plans' ? 'active' : ''} 
+          <button
+            className={activeTab === 'plans' ? 'active' : ''}
             onClick={() => { setActiveTab('plans'); setIsSidebarOpen(false); }}
           >
             <Wifi size={20} /> Gestión de Planes
           </button>
-          <button 
-            className={activeTab === 'content' ? 'active' : ''} 
+          <button
+            className={activeTab === 'content' ? 'active' : ''}
             onClick={() => { setActiveTab('content'); setIsSidebarOpen(false); }}
           >
             <Edit3 size={20} />
             <span>Imágenes y Texto</span>
           </button>
-          <button 
-            className={activeTab === 'access' ? 'active' : ''} 
+          <button
+            className={activeTab === 'access' ? 'active' : ''}
             onClick={() => { setActiveTab('access'); setIsSidebarOpen(false); }}
           >
             <ShieldCheck size={20} /> Ajustes de Acceso
           </button>
-          <button 
-            className={activeTab === 'empresa' ? 'active' : ''} 
+          <button
+            className={activeTab === 'empresa' ? 'active' : ''}
             onClick={() => { setActiveTab('empresa'); setIsSidebarOpen(false); }}
           >
             <Building2 size={20} /> Gestión de Empresa
@@ -475,17 +527,17 @@ const AdminDashboard = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Nombre del Plan</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ej: Plan Ahorro" 
+                    <input
+                      type="text"
+                      placeholder="Ej: Plan Ahorro"
                       value={planForm.name}
-                      onChange={(e) => setPlanForm({...planForm, name: e.target.value})}
+                      onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
                       required
                     />
                   </div>
                   <div className="form-group">
                     <label>Tipo</label>
-                    <select value={planForm.type} onChange={(e) => setPlanForm({...planForm, type: e.target.value})}>
+                    <select value={planForm.type} onChange={(e) => setPlanForm({ ...planForm, type: e.target.value })}>
                       <option value="soloInternet">Solo Internet</option>
                       <option value="internetTV">Internet + TV</option>
                     </select>
@@ -495,21 +547,21 @@ const AdminDashboard = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Precio (Sin puntos ni símbolos)</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ej: 50.000" 
+                    <input
+                      type="text"
+                      placeholder="Ej: 50.000"
                       value={planForm.price}
-                      onChange={(e) => setPlanForm({...planForm, price: e.target.value})}
+                      onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
                       required
                     />
                   </div>
                   <div className="form-group">
                     <label>Velocidad (Megas)</label>
-                    <input 
-                      type="text" 
-                      placeholder="Ej: 30" 
+                    <input
+                      type="text"
+                      placeholder="Ej: 30"
                       value={planForm.speed}
-                      onChange={(e) => setPlanForm({...planForm, speed: e.target.value})}
+                      onChange={(e) => setPlanForm({ ...planForm, speed: e.target.value })}
                       required
                     />
                   </div>
@@ -517,27 +569,30 @@ const AdminDashboard = () => {
 
                 <div className="form-group">
                   <label>Características (Separadas por comas)</label>
-                  <textarea 
+                  <textarea
                     placeholder="Ej: Fibra Óptica, Instalación Gratis, Soporte 24/7"
                     value={planForm.features}
-                    onChange={(e) => setPlanForm({...planForm, features: e.target.value})}
+                    onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })}
                     required
                   ></textarea>
                 </div>
 
                 <div className="form-group checkbox-group">
-                   <label>
-                     <input 
-                       type="checkbox" 
-                       checked={planForm.popular}
-                       onChange={(e) => setPlanForm({...planForm, popular: e.target.checked})}
-                     /> ¿Es el plan más elegido (Popular)?
-                   </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={planForm.popular}
+                      onChange={(e) => setPlanForm({ ...planForm, popular: e.target.checked })}
+                    /> ¿Es el plan más elegido (Popular)?
+                  </label>
                 </div>
 
                 <div className="form-actions">
                   {editingPlan && (
-                    <button type="button" className="btn btn-secondary" onClick={() => setEditingPlan(null)}>Cancelar</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => {
+                      setEditingPlan(null);
+                      setPlanForm({ name: '', price: '', speed: '', type: 'soloInternet', popular: false, features: '' });
+                    }}>Cancelar</button>
                   )}
                   <button type="submit" className="btn btn-primary" disabled={actionLoading}>
                     {actionLoading ? <Loader2 className="spin-icon" /> : <Save size={18} />}
@@ -553,16 +608,16 @@ const AdminDashboard = () => {
                 <h3 style={{ margin: 0 }}>Planes Actuales</h3>
                 <div className="search-bar" style={{ position: 'relative', flex: '1', maxWidth: '300px' }}>
                   <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#666' }} />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar por nombre, precio o megas..." 
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre, precio o megas..."
                     value={planSearch}
                     onChange={(e) => setPlanSearch(e.target.value)}
                     style={{ paddingLeft: '35px', fontSize: '0.8rem', width: '100%', height: '38px' }}
                   />
                 </div>
                 {plans.length === 0 && (
-                  <button 
+                  <button
                     onClick={async () => {
                       if (!window.confirm('¿Quieres cargar los planes predeterminados de Idatel?')) return;
                       setActionLoading(true);
@@ -583,7 +638,7 @@ const AdminDashboard = () => {
                         { speed: "100", name: "Plan Ahorro TV", price: "105.000", popular: false, type: 'internetTV', features: ["58 Canales", "Fibra Óptica"] },
                         { speed: "100", name: "Plan Medium TV", price: "111.000", popular: false, type: 'internetTV', features: ["78 Canales", "Soporte 24/7"] }
                       ];
-                      
+
                       try {
                         for (const plan of defaultPlans) {
                           await addDoc(collection(db, 'plans'), plan);
@@ -660,30 +715,59 @@ const AdminDashboard = () => {
                     <h3>🎯 Sección Hero (Portada)</h3>
                     <div className="form-group">
                       <label>Badge superior</label>
-                      <input type="text" value={siteContent.heroBadge} onChange={(e) => setSiteContent({...siteContent, heroBadge: e.target.value})} placeholder="🚀 Fibra Óptica Real" />
+                      <input type="text" value={siteContent.heroBadge} onChange={(e) => setSiteContent({ ...siteContent, heroBadge: e.target.value })} placeholder="🚀 Fibra Óptica Real" />
                     </div>
                     <div className="form-group">
                       <label>Título Principal</label>
-                      <input type="text" value={siteContent.heroTitle} onChange={(e) => setSiteContent({...siteContent, heroTitle: e.target.value})} placeholder="Navega sin límites con" />
+                      <input type="text" value={siteContent.heroTitle} onChange={(e) => setSiteContent({ ...siteContent, heroTitle: e.target.value })} placeholder="Navega sin límites con" />
                     </div>
                     <div className="form-group">
                       <label>Subtítulo</label>
-                      <textarea rows="3" value={siteContent.heroSubtitle} onChange={(e) => setSiteContent({...siteContent, heroSubtitle: e.target.value})} />
+                      <textarea rows="3" value={siteContent.heroSubtitle} onChange={(e) => setSiteContent({ ...siteContent, heroSubtitle: e.target.value })} />
                     </div>
                     <div className="form-row">
                       <div className="form-group">
                         <label>Botón 1 (CTA)</label>
-                        <input type="text" value={siteContent.heroBtnPrimary} onChange={(e) => setSiteContent({...siteContent, heroBtnPrimary: e.target.value})} placeholder="Verificar Cobertura" />
+                        <input type="text" value={siteContent.heroBtnPrimary} onChange={(e) => setSiteContent({ ...siteContent, heroBtnPrimary: e.target.value })} placeholder="Verificar Cobertura" />
                       </div>
                       <div className="form-group">
                         <label>Botón 2 (Secundario)</label>
-                        <input type="text" value={siteContent.heroBtnSecondary} onChange={(e) => setSiteContent({...siteContent, heroBtnSecondary: e.target.value})} placeholder="Ver Planes" />
+                        <input type="text" value={siteContent.heroBtnSecondary} onChange={(e) => setSiteContent({ ...siteContent, heroBtnSecondary: e.target.value })} placeholder="Ver Planes" />
                       </div>
                     </div>
                     <div className="form-group">
                       <label>📷 Imagen de Fondo (Hero)</label>
-                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px' }}>
+                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px', position: 'relative' }}>
                         <img src={siteContent.heroImg || '/hero-fiber.png'} alt="Preview Hero" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                        {siteContent.heroImg && !['/hero-fiber.png'].includes(siteContent.heroImg) && (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: '#E50914',
+                              color: 'white',
+                              border: 'none',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleSiteImageDelete('heroImg');
+                            }}
+                            title="Eliminar imagen"
+                          >
+                            <Trash2 size={14} /> Eliminar
+                          </button>
+                        )}
                       </div>
                       <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('heroImg', e.target.files[0])} />
                       <small style={{ color: '#666', fontSize: '0.75rem' }}>Si no subes imagen nueva, se mantiene la actual.</small>
@@ -695,20 +779,49 @@ const AdminDashboard = () => {
                     <h3>🛠️ Sección Tecnología</h3>
                     <div className="form-group">
                       <label>Badge</label>
-                      <input type="text" value={siteContent.techBadge} onChange={(e) => setSiteContent({...siteContent, techBadge: e.target.value})} />
+                      <input type="text" value={siteContent.techBadge} onChange={(e) => setSiteContent({ ...siteContent, techBadge: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>Título</label>
-                      <input type="text" value={siteContent.techTitle} onChange={(e) => setSiteContent({...siteContent, techTitle: e.target.value})} />
+                      <input type="text" value={siteContent.techTitle} onChange={(e) => setSiteContent({ ...siteContent, techTitle: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>Descripción</label>
-                      <textarea rows="4" value={siteContent.techDesc} onChange={(e) => setSiteContent({...siteContent, techDesc: e.target.value})} />
+                      <textarea rows="4" value={siteContent.techDesc} onChange={(e) => setSiteContent({ ...siteContent, techDesc: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>📷 Imagen Decorativa</label>
-                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px' }}>
+                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px', position: 'relative' }}>
                         <img src={siteContent.techImg || '/tech-bg.png'} alt="Preview Tech" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                        {siteContent.techImg && !['/tech-bg.png'].includes(siteContent.techImg) && (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: '#E50914',
+                              color: 'white',
+                              border: 'none',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleSiteImageDelete('techImg');
+                            }}
+                            title="Eliminar imagen"
+                          >
+                            <Trash2 size={14} /> Eliminar
+                          </button>
+                        )}
                       </div>
                       <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('techImg', e.target.files[0])} />
                     </div>
@@ -719,24 +832,53 @@ const AdminDashboard = () => {
                     <h3>🏠 Sección Familiar</h3>
                     <div className="form-group">
                       <label>Badge</label>
-                      <input type="text" value={siteContent.familyBadge} onChange={(e) => setSiteContent({...siteContent, familyBadge: e.target.value})} />
+                      <input type="text" value={siteContent.familyBadge} onChange={(e) => setSiteContent({ ...siteContent, familyBadge: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>Título</label>
-                      <input type="text" value={siteContent.familyTitle} onChange={(e) => setSiteContent({...siteContent, familyTitle: e.target.value})} />
+                      <input type="text" value={siteContent.familyTitle} onChange={(e) => setSiteContent({ ...siteContent, familyTitle: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>Descripción</label>
-                      <textarea rows="4" value={siteContent.familyDesc} onChange={(e) => setSiteContent({...siteContent, familyDesc: e.target.value})} />
+                      <textarea rows="4" value={siteContent.familyDesc} onChange={(e) => setSiteContent({ ...siteContent, familyDesc: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>Texto del Botón</label>
-                      <input type="text" value={siteContent.familyBtn} onChange={(e) => setSiteContent({...siteContent, familyBtn: e.target.value})} placeholder="Ver Planes Disponibles" />
+                      <input type="text" value={siteContent.familyBtn} onChange={(e) => setSiteContent({ ...siteContent, familyBtn: e.target.value })} placeholder="Ver Planes Disponibles" />
                     </div>
                     <div className="form-group">
                       <label>📷 Imagen Familiar</label>
-                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px' }}>
+                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px', position: 'relative' }}>
                         <img src={siteContent.familyImg || '/family-bg.png'} alt="Preview Family" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                        {siteContent.familyImg && !['/family-bg.png'].includes(siteContent.familyImg) && (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: '#E50914',
+                              color: 'white',
+                              border: 'none',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleSiteImageDelete('familyImg');
+                            }}
+                            title="Eliminar imagen"
+                          >
+                            <Trash2 size={14} /> Eliminar
+                          </button>
+                        )}
                       </div>
                       <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('familyImg', e.target.files[0])} />
                     </div>
@@ -751,24 +893,53 @@ const AdminDashboard = () => {
                     <h3>🏢 Página Sobre Nosotros</h3>
                     <div className="form-group">
                       <label>Badge de Página</label>
-                      <input type="text" value={siteContent.aboutBadge} onChange={(e) => setSiteContent({...siteContent, aboutBadge: e.target.value})} placeholder="🏢 Sobre Nosotros" />
+                      <input type="text" value={siteContent.aboutBadge} onChange={(e) => setSiteContent({ ...siteContent, aboutBadge: e.target.value })} placeholder="🏢 Sobre Nosotros" />
                     </div>
                     <div className="form-group">
                       <label>Título de Bienvenida</label>
-                      <input type="text" value={siteContent.aboutHeroTitle} onChange={(e) => setSiteContent({...siteContent, aboutHeroTitle: e.target.value})} />
+                      <input type="text" value={siteContent.aboutHeroTitle} onChange={(e) => setSiteContent({ ...siteContent, aboutHeroTitle: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>Descripción de Bienvenida</label>
-                      <textarea rows="3" value={siteContent.aboutHeroDesc} onChange={(e) => setSiteContent({...siteContent, aboutHeroDesc: e.target.value})} />
+                      <textarea rows="3" value={siteContent.aboutHeroDesc} onChange={(e) => setSiteContent({ ...siteContent, aboutHeroDesc: e.target.value })} />
                     </div>
                     <div className="form-group">
                       <label>Título Sección Historia</label>
-                      <input type="text" value={siteContent.historyTitle} onChange={(e) => setSiteContent({...siteContent, historyTitle: e.target.value})} placeholder="Nuestra Historia" />
+                      <input type="text" value={siteContent.historyTitle} onChange={(e) => setSiteContent({ ...siteContent, historyTitle: e.target.value })} placeholder="Nuestra Historia" />
                     </div>
                     <div className="form-group">
                       <label>📷 Imagen de Historia</label>
-                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px' }}>
+                      <div style={{ border: '1px solid #333', borderRadius: '12px', overflow: 'hidden', marginBottom: '8px', position: 'relative' }}>
                         <img src={siteContent.historyImg || '/tech-bg.png'} alt="Preview Historia" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} />
+                        {siteContent.historyImg && !['/tech-bg.png'].includes(siteContent.historyImg) && (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: '#E50914',
+                              color: 'white',
+                              border: 'none',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleSiteImageDelete('historyImg');
+                            }}
+                            title="Eliminar imagen"
+                          >
+                            <Trash2 size={14} /> Eliminar
+                          </button>
+                        )}
                       </div>
                       <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('historyImg', e.target.files[0])} />
                     </div>
@@ -782,15 +953,44 @@ const AdminDashboard = () => {
                     <h3>⚙️ Identidad Global</h3>
                     <div className="form-group">
                       <label>📷 Logo de la Empresa</label>
-                      <div style={{ background: '#000', padding: '1.5rem', borderRadius: '12px', border: '1px solid #333', textAlign: 'center', marginBottom: '8px' }}>
+                      <div style={{ background: '#000', padding: '1.5rem', borderRadius: '12px', border: '1px solid #333', textAlign: 'center', marginBottom: '8px', position: 'relative' }}>
                         <img src={siteContent.logo || '/logo-idatel.png'} alt="Logo Preview" style={{ height: '60px', maxWidth: '200px', objectFit: 'contain' }} />
+                        {siteContent.logo && !['/logo-idatel.png'].includes(siteContent.logo) && (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: '#E50914',
+                              color: 'white',
+                              border: 'none',
+                              padding: '6px 10px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleSiteImageDelete('logo');
+                            }}
+                            title="Eliminar logo"
+                          >
+                            <Trash2 size={14} /> Eliminar
+                          </button>
+                        )}
                       </div>
                       <input type="file" accept="image/*" onChange={(e) => handleSiteImageUpload('logo', e.target.files[0])} />
                       <small style={{ color: '#666', fontSize: '0.75rem' }}>El logo aparece en el Header y Footer del sitio.</small>
                     </div>
                     <div className="form-group">
                       <label>Descripción del Footer</label>
-                      <textarea rows="4" value={siteContent.footerDesc} onChange={(e) => setSiteContent({...siteContent, footerDesc: e.target.value})} placeholder="Conectando el futuro a través de redes de fibra óptica..." />
+                      <textarea rows="4" value={siteContent.footerDesc} onChange={(e) => setSiteContent({ ...siteContent, footerDesc: e.target.value })} placeholder="Conectando el futuro a través de redes de fibra óptica..." />
                     </div>
                   </div>
                 </div>
@@ -821,18 +1021,18 @@ const AdminDashboard = () => {
                       {accessConfig.loginMethod === 'email' ? 'Iniciar con Correo' : 'Iniciar con Nombre de Usuario'}
                     </h4>
                     <p style={{ color: '#888', fontSize: '0.8rem', marginTop: '4px' }}>
-                      {accessConfig.loginMethod === 'email' 
-                        ? 'Se requerirá el correo electrónico oficial.' 
+                      {accessConfig.loginMethod === 'email'
+                        ? 'Se requerirá el correo electrónico oficial.'
                         : 'Se utilizará un alias personalizado en lugar del correo.'}
                     </p>
                   </div>
-                  
+
                   <label className="switch">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={accessConfig.loginMethod === 'username'}
                       onChange={(e) => setAccessConfig({
-                        ...accessConfig, 
+                        ...accessConfig,
                         loginMethod: e.target.checked ? 'username' : 'email'
                       })}
                     />
@@ -844,8 +1044,8 @@ const AdminDashboard = () => {
               {accessConfig.loginMethod === 'username' && (
                 <div className="form-group" style={{ animation: 'slideDown 0.3s ease-out' }}>
                   <label className="input-label">Alias Único (Nombre de Usuario)</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="Ej: idatel_admin"
                     value={accessConfig.adminAlias}
                     onChange={(e) => setAccessConfig({ ...accessConfig, adminAlias: e.target.value })}
@@ -872,30 +1072,30 @@ const AdminDashboard = () => {
               <form onSubmit={handleSaveCompany} className="admin-form">
                 <div className="form-group">
                   <label>Historia de la Empresa</label>
-                  <textarea 
+                  <textarea
                     rows="4"
                     value={companyData.historia}
-                    onChange={(e) => setCompanyData({...companyData, historia: e.target.value})}
+                    onChange={(e) => setCompanyData({ ...companyData, historia: e.target.value })}
                     placeholder="Escribe la historia de Idatel..."
                     required
                   ></textarea>
                 </div>
                 <div className="form-group">
                   <label>Misión</label>
-                  <textarea 
+                  <textarea
                     rows="3"
                     value={companyData.mision}
-                    onChange={(e) => setCompanyData({...companyData, mision: e.target.value})}
+                    onChange={(e) => setCompanyData({ ...companyData, mision: e.target.value })}
                     placeholder="¿Cuál es nuestra misión?"
                     required
                   ></textarea>
                 </div>
                 <div className="form-group">
                   <label>Visión</label>
-                  <textarea 
+                  <textarea
                     rows="3"
                     value={companyData.vision}
-                    onChange={(e) => setCompanyData({...companyData, vision: e.target.value})}
+                    onChange={(e) => setCompanyData({ ...companyData, vision: e.target.value })}
                     placeholder="¿Hacia dónde vamos?"
                     required
                   ></textarea>
@@ -911,11 +1111,11 @@ const AdminDashboard = () => {
               <h3>Categorías del Organigrama</h3>
               <p style={{ color: '#888', fontSize: '0.8rem', marginBottom: '1.5rem' }}>Escribe el nombre de cada rango (Ej: Nivel 1 = Directores).</p>
               <div className="levels-manager">
-                {Object.keys(companyData.niveles || {}).sort((a,b) => a-b).map(lvl => (
+                {Object.keys(companyData.niveles || {}).sort((a, b) => a - b).map(lvl => (
                   <div key={lvl} className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
                     <span style={{ color: 'var(--color-primary)', fontWeight: 'bold', minWidth: '80px' }}>Nivel {lvl}:</span>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={companyData.niveles[lvl]}
                       onChange={(e) => {
                         const newNiveles = { ...companyData.niveles, [lvl]: e.target.value };
@@ -923,9 +1123,9 @@ const AdminDashboard = () => {
                       }}
                       style={{ flex: 1 }}
                     />
-                    <button 
+                    <button
                       type="button"
-                      className="action-btn delete" 
+                      className="action-btn delete"
                       onClick={() => {
                         if (Object.keys(companyData.niveles).length <= 1) return;
                         const newNiveles = { ...companyData.niveles };
@@ -937,7 +1137,7 @@ const AdminDashboard = () => {
                     </button>
                   </div>
                 ))}
-                <button 
+                <button
                   type="button"
                   className="btn btn-outline btn-sm"
                   onClick={() => {
@@ -953,7 +1153,7 @@ const AdminDashboard = () => {
                 >
                   <Plus size={14} /> Añadir Nivel
                 </button>
-                <button 
+                <button
                   type="button"
                   className="btn btn-primary btn-sm"
                   style={{ marginTop: '1.5rem', width: '100%' }}
@@ -971,7 +1171,7 @@ const AdminDashboard = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h3 style={{ margin: 0 }}>{editingTeamMember ? 'Editar Integrante' : 'Equipo de Trabajo'}</h3>
                 {teamMembers.length === 0 && (
-                   <button 
+                  <button
                     onClick={async () => {
                       if (!window.confirm('¿Cargar integrantes de prueba?')) return;
                       setActionLoading(true);
@@ -1003,27 +1203,27 @@ const AdminDashboard = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Nombre</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={teamForm.nombre}
-                      onChange={(e) => setTeamForm({...teamForm, nombre: e.target.value})}
+                      onChange={(e) => setTeamForm({ ...teamForm, nombre: e.target.value })}
                       required
                     />
                   </div>
                   <div className="form-group">
                     <label>Cargo</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={teamForm.cargo}
-                      onChange={(e) => setTeamForm({...teamForm, cargo: e.target.value})}
+                      onChange={(e) => setTeamForm({ ...teamForm, cargo: e.target.value })}
                       required
                     />
                   </div>
                   <div className="form-group">
                     <label>Rango Jerárquico</label>
-                    <select 
+                    <select
                       value={teamForm.nivel}
-                      onChange={(e) => setTeamForm({...teamForm, nivel: Number(e.target.value)})}
+                      onChange={(e) => setTeamForm({ ...teamForm, nivel: Number(e.target.value) })}
                     >
                       {Object.entries(companyData.niveles || {}).sort(([a], [b]) => a - b).map(([val, label]) => (
                         <option key={val} value={val}>{label}</option>
@@ -1035,27 +1235,27 @@ const AdminDashboard = () => {
                   <div className="form-group" style={{ position: 'relative' }}>
                     <label>Foto del Integrante</label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={teamForm.fotoUrl}
-                        onChange={(e) => setTeamForm({...teamForm, fotoUrl: e.target.value, file: null})}
+                        onChange={(e) => setTeamForm({ ...teamForm, fotoUrl: e.target.value, file: null })}
                         placeholder="URL de la imagen..."
                         style={{ flex: 1 }}
                         disabled={!!fileToUpload}
                       />
-                      <label 
-                        className="btn btn-secondary" 
+                      <label
+                        className="btn btn-secondary"
                         style={{ padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Subir desde PC"
                       >
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          style={{ display: 'none' }} 
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
                           onChange={(e) => {
                             if (e.target.files[0]) {
                               setFileToUpload(e.target.files[0]);
-                              setTeamForm({...teamForm, fotoUrl: e.target.files[0].name});
+                              setTeamForm({ ...teamForm, fotoUrl: e.target.files[0].name });
                             }
                           }}
                         />
@@ -1064,29 +1264,29 @@ const AdminDashboard = () => {
                     </div>
                     {fileToUpload && (
                       <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        Archivo seleccionado: {fileToUpload.name} 
-                        <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => {setFileToUpload(null); setTeamForm({...teamForm, fotoUrl: ''})}}> (Quitar)</span>
+                        Archivo seleccionado: {fileToUpload.name}
+                        <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setFileToUpload(null); setTeamForm({ ...teamForm, fotoUrl: '' }) }}> (Quitar)</span>
                       </div>
                     )}
                   </div>
                   <div className="form-group">
                     <label>LinkedIn URL</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={teamForm.linkedin}
-                      onChange={(e) => setTeamForm({...teamForm, linkedin: e.target.value})}
+                      onChange={(e) => setTeamForm({ ...teamForm, linkedin: e.target.value })}
                       placeholder="linkedin.com/in/..."
                     />
                   </div>
                 </div>
                 <button type="submit" className="btn btn-primary btn-sm" disabled={actionLoading || uploading}>
-                   {uploading ? <Loader2 className="spin-icon" /> : editingTeamMember ? <Save size={16} /> : <Plus size={16} />} 
-                   {uploading ? 'Subiendo imagen...' : editingTeamMember ? 'Actualizar Integrante' : 'Añadir Integrante'}
+                  {uploading ? <Loader2 className="spin-icon" /> : editingTeamMember ? <Save size={16} /> : <Plus size={16} />}
+                  {uploading ? 'Subiendo imagen...' : editingTeamMember ? 'Actualizar Integrante' : 'Añadir Integrante'}
                 </button>
                 {editingTeamMember && (
-                  <button 
-                    type="button" 
-                    className="btn btn-outline btn-sm" 
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
                     style={{ marginLeft: '1rem' }}
                     onClick={() => {
                       setEditingTeamMember(null);
@@ -1100,7 +1300,7 @@ const AdminDashboard = () => {
               </form>
 
               <div className="team-list">
-                {teamMembers.sort((a,b) => (a.nivel || 3) - (b.nivel || 3)).map(member => (
+                {teamMembers.sort((a, b) => (a.nivel || 3) - (b.nivel || 3)).map(member => (
                   <div key={member.id} className="team-item-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#000', borderRadius: '8px', marginBottom: '0.5rem' }}>
                     <img src={member.fotoUrl} alt={member.nombre} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                     <div style={{ flex: 1 }}>
