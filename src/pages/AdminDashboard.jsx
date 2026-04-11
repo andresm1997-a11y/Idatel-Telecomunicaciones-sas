@@ -51,14 +51,20 @@ const AdminDashboard = () => {
   const [companyData, setCompanyData] = useState({
     historia: '',
     mision: '',
-    vision: ''
+    vision: '',
+    niveles: {
+      1: 'Directivos',
+      2: 'Coordinadores',
+      3: 'Operativos'
+    }
   });
   const [teamMembers, setTeamMembers] = useState([]);
   const [teamForm, setTeamForm] = useState({
     nombre: '',
     cargo: '',
     linkedin: '',
-    fotoUrl: ''
+    fotoUrl: '',
+    nivel: 2
   });
   const [fileToUpload, setFileToUpload] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -120,7 +126,12 @@ const AdminDashboard = () => {
         // Fetch Company Data
         const companyDoc = await getDoc(doc(db, 'empresa', 'datos'));
         if (companyDoc.exists()) {
-          setCompanyData(companyDoc.data());
+          const data = companyDoc.data();
+          // Asegurar que existan los niveles por defecto si no están en la DB
+          if (!data.niveles) {
+            data.niveles = { 1: 'Directivos', 2: 'Coordinadores', 3: 'Operativos' };
+          }
+          setCompanyData(data);
           console.log("Datos de empresa cargados.");
         }
 
@@ -160,7 +171,8 @@ const AdminDashboard = () => {
       nombre: member.nombre,
       cargo: member.cargo,
       linkedin: member.linkedin || '',
-      fotoUrl: member.fotoUrl
+      fotoUrl: member.fotoUrl,
+      nivel: member.nivel || 3
     });
     setFileToUpload(null);
     if (window.innerWidth < 1100) setIsSidebarOpen(false);
@@ -299,7 +311,7 @@ const AdminDashboard = () => {
         showMessage('success', 'Integrante añadido al equipo.');
       }
 
-      setTeamForm({ nombre: '', cargo: '', linkedin: '', fotoUrl: '' });
+      setTeamForm({ nombre: '', cargo: '', linkedin: '', fotoUrl: '', nivel: 2 });
       setFileToUpload(null);
       setEditingTeamMember(null);
       fetchInitialData();
@@ -712,6 +724,66 @@ const AdminDashboard = () => {
               </form>
             </div>
 
+            {/* Nivel Names Management */}
+            <div className="admin-card">
+              <h3>Categorías del Organigrama</h3>
+              <p style={{ color: '#888', fontSize: '0.8rem', marginBottom: '1.5rem' }}>Escribe el nombre de cada rango (Ej: Nivel 1 = Directores).</p>
+              <div className="levels-manager">
+                {Object.keys(companyData.niveles || {}).sort((a,b) => a-b).map(lvl => (
+                  <div key={lvl} className="form-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                    <span style={{ color: 'var(--color-primary)', fontWeight: 'bold', minWidth: '80px' }}>Nivel {lvl}:</span>
+                    <input 
+                      type="text" 
+                      value={companyData.niveles[lvl]}
+                      onChange={(e) => {
+                        const newNiveles = { ...companyData.niveles, [lvl]: e.target.value };
+                        setCompanyData({ ...companyData, niveles: newNiveles });
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                    <button 
+                      type="button"
+                      className="action-btn delete" 
+                      onClick={() => {
+                        if (Object.keys(companyData.niveles).length <= 1) return;
+                        const newNiveles = { ...companyData.niveles };
+                        delete newNiveles[lvl];
+                        setCompanyData({ ...companyData, niveles: newNiveles });
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button 
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => {
+                    const keys = Object.keys(companyData.niveles).map(Number);
+                    const nextLvl = keys.length > 0 ? Math.max(...keys) + 1 : 1;
+                    if (nextLvl > 5) {
+                      showMessage('error', 'Máximo 5 niveles permitidos.');
+                      return;
+                    }
+                    const newNiveles = { ...companyData.niveles, [nextLvl]: `Nuevo Nivel ${nextLvl}` };
+                    setCompanyData({ ...companyData, niveles: newNiveles });
+                  }}
+                >
+                  <Plus size={14} /> Añadir Nivel
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ marginTop: '1.5rem', width: '100%' }}
+                  disabled={actionLoading}
+                  onClick={handleSaveCompany}
+                >
+                  {actionLoading ? <Loader2 className="spin-icon" /> : <Save size={16} />} Guardar Nombres de Categorías
+                </button>
+              </div>
+            </div>
+
+
             {/* Team Management */}
             <div className="admin-card" id="team-form">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -764,6 +836,17 @@ const AdminDashboard = () => {
                       onChange={(e) => setTeamForm({...teamForm, cargo: e.target.value})}
                       required
                     />
+                  </div>
+                  <div className="form-group">
+                    <label>Rango Jerárquico</label>
+                    <select 
+                      value={teamForm.nivel}
+                      onChange={(e) => setTeamForm({...teamForm, nivel: Number(e.target.value)})}
+                    >
+                      {Object.entries(companyData.niveles || {}).sort(([a], [b]) => a - b).map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div className="form-row">
@@ -835,11 +918,14 @@ const AdminDashboard = () => {
               </form>
 
               <div className="team-list">
-                {teamMembers.map(member => (
+                {teamMembers.sort((a,b) => (a.nivel || 3) - (b.nivel || 3)).map(member => (
                   <div key={member.id} className="team-item-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#000', borderRadius: '8px', marginBottom: '0.5rem' }}>
                     <img src={member.fotoUrl} alt={member.nombre} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>{member.nombre}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        {companyData.niveles[member.nivel] || 'Equipo'}
+                      </div>
                       <div style={{ fontSize: '0.8rem', color: '#888' }}>{member.cargo}</div>
                     </div>
                     <div className="table-actions">

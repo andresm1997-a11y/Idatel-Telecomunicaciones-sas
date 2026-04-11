@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Wifi, 
-  Zap, 
-  Headset, 
-  Clock, 
-  CheckCircle2, 
-  ChevronRight, 
-  MapPin, 
-  PhoneCall, 
+import {
+  Wifi,
+  Zap,
+  Headset,
+  Clock,
+  CheckCircle2,
+  ChevronRight,
+  MapPin,
+  PhoneCall,
   MessageCircle,
   Menu,
   X,
@@ -28,7 +28,7 @@ const Header = () => {
         <a href="/" className="logo">
           <img src="/logo-idatel.png" alt="Idatel Teleco" className="logo-image" />
         </a>
-        
+
         <nav className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
           <a href="#planes" onClick={() => setIsMenuOpen(false)}>Planes</a>
           <a href="#cobertura" onClick={() => setIsMenuOpen(false)}>Cobertura</a>
@@ -56,7 +56,7 @@ const Hero = ({ content }) => {
     <section className="hero">
       <img src="/hero-fiber.png" alt="Fiber Background" className="hero-bg-image" />
       <div className="hero-overlay"></div>
-      
+
       <div className="container hero-container">
         <div className="hero-content">
           <div className="badge">🚀 {content?.badge || 'Fibra Óptica Real'}</div>
@@ -71,7 +71,7 @@ const Hero = ({ content }) => {
               Verificar Cobertura
             </a>
             <a href="#planes" className="btn btn-secondary">
-              Ver Planes 
+              Ver Planes
             </a>
           </div>
           <div className="hero-trust">
@@ -88,13 +88,13 @@ const Hero = ({ content }) => {
         </div>
         <div className="hero-image-wrapper">
           <div className="hero-abstract-art">
-            <div 
+            <div
               className="glass-card floating-card"
               onClick={() => window.open('https://fast.com/es', '_blank')}
-              style={{ 
-                cursor: 'pointer', 
-                userSelect: 'none', 
-                background: 'rgba(0,0,0,0.8)', 
+              style={{
+                cursor: 'pointer',
+                userSelect: 'none',
+                background: 'rgba(0,0,0,0.8)',
                 border: '1px solid #333',
                 display: 'flex',
                 flexDirection: 'column',
@@ -187,8 +187,8 @@ const TechSection = () => {
             <div className="badge">🛠️ Tecnología de Punta</div>
             <h2>Infraestructura que no se detiene</h2>
             <p>
-              En Idatel utilizamos componentes de última generación y tendidos propios de fibra óptica. 
-              Nuestros técnicos están capacitados para reaccionar ante cualquier imprevisto, asegurando 
+              En Idatel utilizamos componentes de última generación y tendidos propios de fibra óptica.
+              Nuestros técnicos están capacitados para reaccionar ante cualquier imprevisto, asegurando
               que tu hogar siempre esté conectado a la máxima velocidad.
             </p>
             <ul className="plan-features">
@@ -208,16 +208,16 @@ const FamilySection = () => {
   return (
     <section className="feature-image-section bg-surface">
       <div className="container">
-        <div className="split-grid" style={{direction: 'rtl'}}>
-          <div className="split-image-wrapper" style={{direction: 'ltr'}}>
+        <div className="split-grid" style={{ direction: 'rtl' }}>
+          <div className="split-image-wrapper" style={{ direction: 'ltr' }}>
             <img src="/family-bg.png" alt="Happy Connectivity" className="split-image" />
           </div>
-          <div className="split-content" style={{direction: 'ltr'}}>
+          <div className="split-content" style={{ direction: 'ltr' }}>
             <div className="badge">🏠 Conexión Familiar</div>
             <h2>Entretenimiento sin interrupciones</h2>
             <p>
-              Toda la familia al mismo tiempo: streaming 4K, teletrabajo, clases virtuales y gaming. 
-              Con Idatel, el ancho de banda nunca es un problema. Conectamos lo que más quieres con el 
+              Toda la familia al mismo tiempo: streaming 4K, teletrabajo, clases virtuales y gaming.
+              Con Idatel, el ancho de banda nunca es un problema. Conectamos lo que más quieres con el
               mundo.
             </p>
             <a href="#planes" className="btn btn-primary">Ver Planes Disponibles</a>
@@ -255,16 +255,16 @@ const Pricing = ({ dynamicPlans }) => {
     ]
   };
 
-  const currentPlans = dynamicPlans && dynamicPlans.length > 0 
+  const currentPlans = dynamicPlans && dynamicPlans.length > 0
     ? {
-        soloInternet: dynamicPlans.filter(p => p.type === 'soloInternet'),
-        internetTV: dynamicPlans.filter(p => p.type === 'internetTV')
-      }
+      soloInternet: dynamicPlans.filter(p => p.type === 'soloInternet'),
+      internetTV: dynamicPlans.filter(p => p.type === 'internetTV')
+    }
     : defaultPlans;
 
   const handleHirePlan = (plan) => {
     const category = type === 'soloInternet' ? 'Solo Internet' : 'Internet + TV';
-    const waMessage = `¡Hola Idatel! Quisiera contratar el ${plan.name} (${category}) de ${plan.speed} Megas, listado en su sitio por $${plan.price}. ¿Me podrían ayudar?`;
+    const waMessage = `¡Hola Idatel! Quisiera contratar el ${plan.name} (${category}) de ${plan.speed} Megas, listado en su pagina web por $${plan.price}. ¿Me podrían ayudar?`;
     const url = apiService.generateWhatsAppLink(waMessage);
     window.open(url, '_blank');
   };
@@ -272,10 +272,10 @@ const Pricing = ({ dynamicPlans }) => {
   return (
     <section id="planes" className="pricing bg-surface">
       <div className="container">
-         <div className="section-header">
+        <div className="section-header">
           <h2 className="section-title">Planes diseñados para ti</h2>
           <p className="section-subtitle">Instalación del servicio ($50.000) Fibra. Elige el que mejor se adapte a ti.</p>
-          
+
           <div className="toggle-container">
             <button className={`toggle-btn ${type === 'soloInternet' ? 'active' : ''}`} onClick={() => setType('soloInternet')}>Solo Internet</button>
             <button className={`toggle-btn ${type === 'internetTV' ? 'active' : ''}`} onClick={() => setType('internetTV')}>Internet + TV</button>
@@ -301,7 +301,7 @@ const Pricing = ({ dynamicPlans }) => {
                 ))}
               </ul>
               <div className="pricing-footer">
-                <button 
+                <button
                   onClick={() => handleHirePlan(plan)}
                   className={`btn ${plan.popular ? 'btn-primary' : 'btn-outline'} block`}
                 >
@@ -342,26 +342,26 @@ const Coverage = () => {
       <div className="container coverage-container">
         <div className="coverage-content">
           <h2 className="section-title text-base">¿Llegamos a tu barrio?</h2>
-          <p className="section-subtitle text-base" style={{opacity: 0.9, marginBottom: '2rem'}}>
+          <p className="section-subtitle text-base" style={{ opacity: 0.9, marginBottom: '2rem' }}>
             Verifica al instante si nuestra red de fibra óptica ya ilumina tu calle.
           </p>
-          
+
           <form className="coverage-form" onSubmit={handleSubmit}>
             <div className="input-group">
               <MapPin className="input-icon" />
-              <input 
-                type="text" 
-                placeholder="Ingresa tu municipio (Ej: Socorro)" 
+              <input
+                type="text"
+                placeholder="Ingresa tu municipio (Ej: Socorro)"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 disabled={loading}
-                required 
+                required
               />
             </div>
-            <button 
-              type="submit" 
-              className="btn btn-primary" 
-              style={{backgroundColor: 'white', color: 'var(--color-primary)', display: 'flex'}}
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ backgroundColor: 'white', color: 'var(--color-primary)', display: 'flex' }}
               disabled={loading}
             >
               {loading ? <><Loader2 className="spin-icon" size={18} /> Buscando...</> : 'Verificar'}
@@ -371,8 +371,8 @@ const Coverage = () => {
           {/* Resultado API */}
           {result && (
             <div className={`coverage-result ${result.status}`} style={{
-              marginTop: '1.5rem', 
-              padding: '1rem', 
+              marginTop: '1.5rem',
+              padding: '1rem',
               backgroundColor: result.status === 'success' ? '#10B981' : (result.status === 'warning' ? '#F59E0B' : '#EF4444'),
               borderRadius: '12px',
               fontWeight: '500',
@@ -412,7 +412,7 @@ const Footer = () => {
             <h4>Compañía</h4>
             <Link to="/nosotros" style={{ display: 'block', marginBottom: '8px' }}>Nosotros</Link>
             <a href="#">Centro de Ayuda</a>
-            <Link to="/login" style={{color: '#888', fontSize: '13px', marginTop: '10px', display: 'inline-block'}}>Acceso Panel</Link>
+            <Link to="/login" style={{ color: '#888', fontSize: '13px', marginTop: '10px', display: 'inline-block' }}>Acceso Panel</Link>
             <a href="#">Términos y Condiciones</a>
           </div>
           <div className="footer-contact">
@@ -425,7 +425,7 @@ const Footer = () => {
           <p>&copy; {new Date().getFullYear()} Idatel SAS. Todos los derechos reservados.</p>
         </div>
       </div>
-      
+
       {/* Floating WhatsApp Button */}
       <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noreferrer" className="whatsapp-floating" aria-label="Chat on WhatsApp">
         <MessageCircle size={28} color="white" />

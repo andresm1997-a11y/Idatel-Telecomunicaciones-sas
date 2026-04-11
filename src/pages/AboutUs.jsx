@@ -121,18 +121,38 @@ const AboutUs = () => {
             <p>Conoce al talento humano que hace posible tu conexión día a día.</p>
           </div>
           
-          <div className="team-grid">
-            {team.length > 0 ? team.map(member => (
-              <div key={member.id} className="team-card">
-                <div className="member-photo">
-                  <img src={member.fotoUrl} alt={member.nombre} />
-                </div>
-                <div className="member-info">
-                  <h4>{member.nombre}</h4>
-                  <p>{member.cargo}</p>
-                </div>
-              </div>
-            )) : (
+          <div className="org-structure">
+            {Object.keys(companyData?.niveles || { 1: 'Directivos', 2: 'Coordinadores', 3: 'Operativos' })
+              .sort((a,b) => a-b)
+              .map(nivelKey => {
+                const membersInLevel = team.filter(m => (m.nivel || 3) === Number(nivelKey));
+                if (membersInLevel.length === 0) return null;
+
+                return (
+                  <div key={nivelKey} className={`team-level-row level-${nivelKey}`}>
+                    <h3 className="level-title">
+                      <span className="line"></span>
+                      {companyData?.niveles?.[nivelKey] || companyData?.niveles?.[Number(nivelKey)] || `Nivel ${nivelKey}`}
+                      <span className="line"></span>
+                    </h3>
+                    <div className="team-grid">
+                      {membersInLevel.map(member => (
+                        <div key={member.id} className="team-card">
+                          <div className="member-photo">
+                            <img src={member.fotoUrl} alt={member.nombre} />
+                          </div>
+                          <div className="member-info">
+                            <h4>{member.nombre}</h4>
+                            <p>{member.cargo}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            
+            {team.length === 0 && (
               <p className="no-data">No hay integrantes configurados actualmente.</p>
             )}
           </div>
@@ -274,23 +294,56 @@ const AboutUs = () => {
         .mv-card h3 { font-size: 1.8rem; margin-bottom: 1rem; }
         .mv-card p { color: #b3b3b3; line-height: 1.6; }
 
-        .team-section { padding: 8rem 0; }
-        .section-header { text-align: center; margin-bottom: 4rem; }
+        .team-section { padding: 6rem 0; }
+        .section-header { text-align: center; margin-bottom: 5rem; }
         .section-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
         .section-header p { color: #b3b3b3; }
 
+        .org-structure {
+          display: flex;
+          flex-direction: column;
+          gap: 5rem;
+        }
+
+        .level-title {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 2rem;
+          margin-bottom: 3rem;
+          color: white;
+          font-size: 1.5rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+        }
+
+        .level-title .line {
+          height: 2px;
+          background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+          flex: 1;
+          max-width: 150px;
+        }
+
         .team-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(200px, 260px));
           gap: 2rem;
+          justify-content: center;
         }
 
         .team-card {
           background: #111;
-          border-radius: 24px;
+          border-radius: 20px;
           overflow: hidden;
           text-align: center;
-          transition: 0.3s;
+          transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid #222;
+          width: 100%;
+        }
+
+        .level-1 .team-card {
+           border-color: rgba(229, 9, 20, 0.4);
         }
 
         .member-photo {
@@ -306,11 +359,12 @@ const AboutUs = () => {
           transition: 0.5s;
         }
 
+        .team-card:hover { border-color: var(--color-primary); transform: translateY(-10px); }
         .team-card:hover .member-photo img { transform: scale(1.05); }
 
-        .member-info { padding: 1.5rem; }
-        .member-info h4 { font-size: 1.25rem; margin-bottom: 0.4rem; }
-        .member-info p { color: var(--color-primary); font-size: 0.9rem; font-weight: 600; }
+        .member-info { padding: 2rem; }
+        .member-info h4 { font-size: 1.3rem; margin-bottom: 0.5rem; font-weight: 800; }
+        .member-info p { color: var(--color-primary); font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 
         .about-loading {
           height: 100vh;
